@@ -5,6 +5,33 @@
 // APPS_SCRIPT_URL est défini dans config.js
 
 // ============================================================
+// LIEN « ACCUEIL » EN HAUT DE PAGE
+// Barre ajoutée automatiquement sur toutes les pages qui chargent ce
+// fichier. Jamais imprimée ni intégrée au PDF : classe "no-print"
+// (retirée du HTML envoyé à la génération PDF), règle @media print
+// et masquage dans le CSS injecté ci-dessous.
+// Rien n'est ajouté si la page a déjà son propre lien vers index.html.
+// ============================================================
+(function () {
+    function ajouterLienAccueil() {
+        if (!document.body || document.querySelector('.barre-accueil-site, a[href="index.html"]')) return;
+        var st = document.createElement('style');
+        st.textContent =
+            '.barre-accueil-site{padding:8px 16px;background:#fff;border-bottom:1px solid #e6dfd6;font:13px "DM Sans",Arial,sans-serif;}' +
+            '.barre-accueil-site a{color:#c96b2a;text-decoration:none;font-weight:600;}' +
+            '.barre-accueil-site a:hover{text-decoration:underline;}' +
+            '@media print{.barre-accueil-site{display:none !important;}}';
+        document.head.appendChild(st);
+        var barre = document.createElement('div');
+        barre.className = 'barre-accueil-site no-print';
+        barre.innerHTML = '<a href="index.html">\u2190 Accueil de l\'association</a>';
+        document.body.insertBefore(barre, document.body.firstChild);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ajouterLienAccueil);
+    else ajouterLienAccueil();
+})();
+
+// ============================================================
 // ← AJOUTÉ : MAJUSCULE AUTOMATIQUE SUR LES CHAMPS TEXTE LIBRES
 // Remplace les oninput="this.value=this.value.toUpperCase()" qui étaient
 // codés en dur champ par champ dans chaque formulaire. Un seul écouteur
