@@ -165,20 +165,28 @@ function escH(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').repla
 function fmtDate(d) { if (!d) return '—'; const s=String(d).trim(); if (/^\d{4}-\d{2}-\d{2}/.test(s)) { const p=s.slice(0,10).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; } return s; }
 function normPer(p) { return String(p||'').trim().replace(/\s*[-–]\s*/, ' - '); }
 
-// Dates par défaut d'une période « 2025 - 2026 » : 1er novembre 2025 → 31 octobre 2026
+// Réglage de l'exercice (Configuration → Périodes) : jour et mois de début
+let exercice = { format: 'cheval', jour: 1, mois: 11 };
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+// Dates par défaut d'une période (« 2026 » ou « 2025 - 2026 ») selon le début d'exercice configuré
 function datesParDefaut(label) {
-  const m = normPer(label).match(/^(\d{4}) - (\d{4})$/);
+  const m = normPer(label).match(/^(\d{4})(?: - (\d{4}))?$/);
   if (!m) return { debut: '', fin: '' };
-  return { debut: m[1] + '-11-01', fin: m[2] + '-10-31' };
+  const y = parseInt(m[1], 10);
+  return {
+    debut: y + '-' + pad2(exercice.mois) + '-' + pad2(exercice.jour),
+    fin: new Date(Date.UTC(y + 1, exercice.mois - 1, exercice.jour - 1)).toISOString().slice(0, 10)
+  };
 }
 
 async function demarrerRapports() {
   // Périodes + dates enregistrées (lecture possible pour les comptes Compta ; sinon repli sur des valeurs par défaut)
   try {
-    const r1 = await supabaseClient.from('config_compta').select('cle, valeur').in('cle', ['periodes','periodes_dates']);
+    const r1 = await supabaseClient.from('config_compta').select('cle, valeur').in('cle', ['periodes','periodes_dates','exercice']);
     (r1.data || []).forEach(function(r) {
       if (r.cle === 'periodes' && Array.isArray(r.valeur)) periodes = r.valeur;
       if (r.cle === 'periodes_dates' && r.valeur) datesPeriodes = r.valeur;
+      if (r.cle === 'exercice' && r.valeur && r.valeur.mois) exercice = r.valeur;
     });
   } catch (e) { console.warn('[rapports] config_compta illisible :', e); }
   if (!periodes.length) {
@@ -206,7 +214,7 @@ function onPeriodeChange() {
   const def = datesParDefaut(p);
   document.getElementById('date-debut').value = d ? d.debut : def.debut;
   document.getElementById('date-fin').value = d ? d.fin : def.fin;
-  note.textContent = d ? 'Dates enregistrées pour cette période.' : 'Dates par défaut (1er novembre → 31 octobre) : corrigez-les si votre exercice est différent, puis « Enregistrer ces dates ».';
+  note.textContent = d ? 'Dates enregistrées pour cette période.' : 'Dates calculées d\'après le début d\'exercice (Configuration → Périodes) : corrigez-les si besoin, puis « Enregistrer ces dates ».';
 }
 
 async function sauverDates() {

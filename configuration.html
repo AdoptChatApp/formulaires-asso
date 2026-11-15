@@ -126,8 +126,25 @@
   <div class="carte">
     <h2>Périodes</h2>
     <div id="liste-periodes"></div>
+    <div class="admin-only" style="margin:14px 0 10px;padding:10px 12px;border:1px solid #e3e3e3;border-radius:6px;">
+      <strong>Exercice comptable</strong>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px;font-size:13px;">
+        <label>Nom de la période :
+          <select id="exo-format" onchange="apercuExercice()">
+            <option value="annee">Année seule (ex. 2026)</option>
+            <option value="cheval">Deux années (ex. 2026 - 2027)</option>
+          </select>
+        </label>
+        <label>Début de l'exercice :
+          <select id="exo-jour" onchange="apercuExercice()"></select>
+          <select id="exo-mois" onchange="apercuExercice()"></select>
+        </label>
+        <button onclick="enregistrerExercice()">Enregistrer</button>
+      </div>
+      <div id="exo-apercu" style="font-size:12.5px;color:#666;margin-top:8px;"></div>
+    </div>
     <div class="ligne-ajout admin-only">
-      <input type="text" id="nouvelle-periode" placeholder="Ex: 2026 - 2027">
+      <input type="number" id="nouvelle-periode" placeholder="Année de début, ex : 2026" min="2000" max="2100">
       <button onclick="ajouterPeriode()">Ajouter</button>
     </div>
     <p style="font-size:12.5px;color:#666;margin-top:12px;"><strong>Période par défaut</strong> :
@@ -383,15 +400,75 @@ async function chargerPeriodes() {
         conteneur.appendChild(ligne);
     });
     remplirSelectPeriodes(periodes);
+    chargerExercice();
+}
+
+// ---- Exercice comptable : format du nom + jour/mois de début (config_compta.exercice) ----
+var exercice = { format: 'cheval', jour: 1, mois: 11 };   // valeur par défaut historique : 1er novembre
+var MOIS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+function jourMax(mois) { return [31,28,31,30,31,30,31,31,30,31,30,31][mois - 1]; }
+// Nom et dates d'une période commençant l'année « y » avec les réglages « ex »
+function calculerPeriode(y, ex) {
+    var label = ex.format === 'annee' ? String(y) : (y + ' - ' + (y + 1));
+    var debut = y + '-' + pad2(ex.mois) + '-' + pad2(ex.jour);
+    var fin = new Date(Date.UTC(y + 1, ex.mois - 1, ex.jour - 1)).toISOString().slice(0, 10);
+    return { label: label, debut: debut, fin: fin };
+}
+function fmtJJMMAAAA(iso) { var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+function remplirReglagesExercice() {
+    var sj = document.getElementById('exo-jour'), sm = document.getElementById('exo-mois');
+    if (!sj.options.length) {
+        for (var j = 1; j <= 31; j++) sj.add(new Option(j === 1 ? '1er' : String(j), j));
+        MOIS_FR.forEach(function (m, i) { sm.add(new Option(m, i + 1)); });
+    }
+    document.getElementById('exo-format').value = exercice.format;
+    sj.value = exercice.jour; sm.value = exercice.mois;
+    apercuExercice();
+}
+function lireReglagesExercice() {
+    return {
+        format: document.getElementById('exo-format').value,
+        jour: parseInt(document.getElementById('exo-jour').value, 10),
+        mois: parseInt(document.getElementById('exo-mois').value, 10)
+    };
+}
+function apercuExercice() {
+    var ex = lireReglagesExercice(), y = new Date().getFullYear();
+    var p = calculerPeriode(y, ex);
+    document.getElementById('exo-apercu').textContent =
+        'Exemple : la période « ' + p.label + ' » ira du ' + fmtJJMMAAAA(p.debut) + ' au ' + fmtJJMMAAAA(p.fin) + '.';
+}
+async function chargerExercice() {
+    const { data } = await supabaseClient.from('config_compta').select('valeur').eq('cle', 'exercice').maybeSingle();
+    if (data && data.valeur && data.valeur.mois) exercice = data.valeur;
+    remplirReglagesExercice();
+}
+async function enregistrerExercice() {
+    var ex = lireReglagesExercice();
+    if (ex.jour > jourMax(ex.mois)) { afficherMessage('Date de début invalide pour ce mois.', 'err'); return; }
+    await appelerRpc('definir_config_compta', { p_cle: 'exercice', p_valeur: ex });
+    exercice = ex;
+    afficherMessage('Exercice enregistré. Il s\'applique aux périodes ajoutées ensuite.');
 }
 
 async function ajouterPeriode() {
     var input = document.getElementById('nouvelle-periode');
-    var val = input.value.trim().replace(/\s*[-–]\s*/, ' - ');
-    if (!val) return;
-    await appelerRpc('ajouter_periode', { p_periode: val });
+    var y = parseInt(input.value, 10);
+    if (!y || y < 2000 || y > 2100) { afficherMessage('Saisissez l\'année de début (ex. 2026).', 'err'); return; }
+    var ex = lireReglagesExercice();
+    if (ex.jour > jourMax(ex.mois)) { afficherMessage('Date de début invalide pour ce mois.', 'err'); return; }
+    var p = calculerPeriode(y, ex);
+    await appelerRpc('ajouter_periode', { p_periode: p.label });
+    // Enregistre aussi les dates de la période (utilisées par les rapports et listes d'animaux)
+    try {
+        const { data } = await supabaseClient.from('config_compta').select('valeur').eq('cle', 'periodes_dates').maybeSingle();
+        var dates = (data && data.valeur) ? data.valeur : {};
+        dates[p.label] = { debut: p.debut, fin: p.fin };
+        await appelerRpc('definir_config_compta', { p_cle: 'periodes_dates', p_valeur: dates });
+    } catch (e) { console.warn('[config] dates de période non enregistrées :', e); }
     input.value = '';
-    afficherMessage('Période ajoutée.');
+    afficherMessage('Période « ' + p.label + ' » ajoutée (du ' + fmtJJMMAAAA(p.debut) + ' au ' + fmtJJMMAAAA(p.fin) + ').');
     chargerPeriodes();
 }
 async function supprimerPeriode(p) {
