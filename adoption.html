@@ -52,7 +52,6 @@
 
 <div class="buttons">
     <button class="btn btn-save"  onclick="saveForm()">💾 Sauvegarder</button>
-    <button class="btn btn-print btn-print-disabled" onclick="printForm()" disabled>🖨️ Imprimer</button>
 </div>
 
 <div class="page-container">
@@ -1255,7 +1254,7 @@ async function _saveFormOriginal() {
                 if (erreurMail) throw erreurMail;
             } catch (e) {
                 console.error('Erreur envoi PDF/mail :', e);
-                avertissementMail = ' ⚠️ Mais l\'envoi du PDF par mail a échoué. L\'adoption est bien enregistrée — vous pouvez imprimer le contrat avec le bouton "Imprimer" en attendant.';
+                avertissementMail = ' ⚠️ Mais l\'envoi du PDF par mail a échoué. L\'adoption est bien enregistrée.';
             }
             // Toutes les photos prises (animal, CNI, domicile, CBS, carnet de
             // santé) regroupées dans un PDF déposé sur Drive et lié à
@@ -1284,7 +1283,7 @@ async function _saveFormOriginal() {
         if (btnSave) { btnSave.textContent = 'Sauvegarde OK'; btnSave.className = 'btn btn-saved'; btnSave.disabled = true; }
         if (btnPrint) { btnPrint.textContent = 'Imprimer'; btnPrint.className = 'btn btn-print'; btnPrint.disabled = false; }
         masquerPopupChargement();
-        afficherMessage('Formulaire enregistré<br>Vous pouvez imprimer' + avertissementMail);
+        afficherMessage('Formulaire enregistré' + avertissementMail);
     } catch (err) {
         masquerPopupChargement();
         console.error(err);

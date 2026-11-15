@@ -723,7 +723,7 @@ async function saveForm() {
             await postSavePhotos(data, filename);
         }
 
-        afficherMessage('✅ Mail généré<br>Vous pouvez maintenant imprimer si besoin.');
+        afficherMessage('✅ Mail généré');
     } else {
         alert('Erreur lors de la sauvegarde. Vérifiez votre connexion.');
     }

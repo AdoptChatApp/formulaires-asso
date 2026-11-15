@@ -57,7 +57,6 @@
 <!-- Boutons flottants -->
 <div class="buttons">
     <button class="btn btn-save"  onclick="saveForm()">💾 Sauvegarder</button>
-    <button class="btn btn-print btn-print-disabled" onclick="printForm()" disabled>🖨️ Imprimer</button>
 </div>
 
 
@@ -661,7 +660,7 @@ async function saveForm() {
             btnPrint.disabled = false;
         }
         masquerPopupChargement();
-        afficherMessage('Formulaire enregistré<br>Vous pouvez imprimer' + avertissementMail);
+        afficherMessage('Formulaire enregistré' + avertissementMail);
 
         // Ouvre Dons.html, pré-rempli avec les infos de l'adhérent et le
         // montant du don libre, si "Membre bienfaiteur" ou "Membre

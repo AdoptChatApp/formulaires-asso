@@ -33,7 +33,6 @@
 
 <div class="buttons">
     <button class="btn btn-save"  onclick="saveForm()">💾 Sauvegarder</button>
-    <button class="btn btn-print btn-print-disabled" onclick="printForm()" disabled>🖨️ Imprimer</button>
 </div>
 
 <div class="page-container">
@@ -447,7 +446,7 @@ async function saveForm() {
         var btnPrint = document.querySelector('.btn-print');
         if (btnSave) { btnSave.textContent = 'Sauvegarde OK'; btnSave.className = 'btn btn-saved'; btnSave.disabled = true; }
         if (btnPrint) { btnPrint.textContent = 'Imprimer'; btnPrint.className = 'btn btn-print'; btnPrint.disabled = false; }
-        afficherMessage('Formulaire enregistré<br>Vous pouvez imprimer' + avertissementMail);
+        afficherMessage('Formulaire enregistré' + avertissementMail);
     } catch (err) {
         console.error(err);
         afficherMessage('⚠️ Erreur lors de la sauvegarde : ' + (err.message || err), 'erreur');

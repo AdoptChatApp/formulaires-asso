@@ -25,7 +25,6 @@
 <!-- Boutons flottants -->
 <div class="buttons">
     <button class="btn btn-save"  onclick="saveForm()">💾 Sauvegarder</button>
-    <button class="btn btn-print btn-print-disabled" onclick="printForm()" disabled>🖨️ Imprimer</button>
 </div>
 
 <div class="page-container">
@@ -701,7 +700,7 @@ chargerListeSaisisseurs();
                     if (erreurMail) throw erreurMail;
                 } catch (e) {
                     console.error('Erreur envoi PDF/mail :', e);
-                    avertissementMail = ' ⚠️ Mais l\'envoi du PDF par mail a échoué. La réservation est bien enregistrée — vous pouvez l\'imprimer avec le bouton "Imprimer" en attendant.';
+                    avertissementMail = ' ⚠️ Mais l\'envoi du PDF par mail a échoué. La réservation est bien enregistrée.';
                 }
                 if (typeof postSavePhotos === 'function') {
                     var photoBaseOk = await postSavePhotos(data, data.filename);
@@ -717,7 +716,7 @@ chargerListeSaisisseurs();
             if (btnSave) { btnSave.textContent = 'Sauvegarde OK'; btnSave.className = 'btn btn-saved'; btnSave.disabled = true; }
             if (btnPrint) { btnPrint.textContent = 'Imprimer'; btnPrint.className = 'btn btn-print'; btnPrint.disabled = false; }
             masquerPopupChargement();
-            afficherMessage('Formulaire enregistré<br>Vous pouvez imprimer' + avertissementMail);
+            afficherMessage('Formulaire enregistré' + avertissementMail);
         } catch (err) {
             masquerPopupChargement();
             console.error(err);
