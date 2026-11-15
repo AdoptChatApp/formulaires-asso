@@ -137,6 +137,11 @@
   </div>
   <div class="page-content">
 
+    <div class="form-group" id="bloc-compte" style="max-width:240px;margin-bottom:14px;display:none;">
+      <label class="form-label">Banque</label>
+      <select id="fl-compte" onchange="onCompteChange()"></select>
+    </div>
+
     <div class="kpi-bar" id="kpi-bar"></div>
 
     <div class="list-card">
@@ -147,7 +152,6 @@
         </div>
         <div class="info-box" style="margin:8px 0 10px;"><i class="ti ti-info-circle"></i> Les opérations bancaires ne se saisissent pas à la main : elles arrivent uniquement par <a href="import_rapprochement.html" style="color:inherit;text-decoration:underline;">Import / rapprochement</a>. Les lignes existantes restent modifiables ici.</div>
         <div class="filters-bar">
-          <select class="f-select" id="fl-compte" onchange="onCompteChange()" style="display:none"></select>
           <select class="f-select" id="fl-per" onchange="onFilterChange()"></select>
           <input class="f-input" type="text" id="fl-search" placeholder="Rechercher…" oninput="renderTable()">
           <select class="f-select" id="fl-type" onchange="renderTable()"><option value="">Tous les types de mouvement</option></select>
@@ -287,7 +291,7 @@ async function demarrerApp(user) {
   await COMPTES.charger(supabaseClient);
   const selCompte = document.getElementById('fl-compte');
   selCompte.innerHTML = COMPTES.options('banque', 'Tous les comptes bancaires');
-  selCompte.style.display = COMPTES.banques().length > 1 ? '' : 'none';
+  document.getElementById('bloc-compte').style.display = COMPTES.banques().length > 1 ? '' : 'none';
   await chargerPeriodes(); await chargerTypesEtDescriptions(); await chargerFournisseurs();
   document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
   await loadData();
