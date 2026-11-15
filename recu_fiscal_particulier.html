@@ -402,14 +402,21 @@ async function saveForm() {
         if (ENVOYER_PDF_MAIL) {
             try {
                 const pdfBytes = await genererPdfFormulaire();
-                await envoyerMailFormulaire({
+                let erreurMail = null;
+                try {
+                    await envoyerMailFormulaire({
                     sujet: 'Reçu fiscal n°' + champNumero.value,
                     corps: construireCorpsMail(data),
                     pdfBytes: pdfBytes,
                     pdfNomFichier: data.filename + '.pdf',
                     emailClient: paiementVirementPrefill ? undefined : data.email,
                     nomClient: ((data.prenom || '') + ' ' + (data.nom || '')).trim()
-                });
+                    });
+                } catch (eMail) {
+                    console.error('Erreur envoi mail :', eMail);
+                    erreurMail = eMail;
+                }
+                // Le PDF est déposé sur Drive même si le mail n'est pas parti.
                 try {
                     await enregistrerPdfDrive({
                         onglet: 'Reçu fiscal',
@@ -426,6 +433,7 @@ async function saveForm() {
                     console.error('Erreur dépôt Drive :', eDrive);
                     avertissementMail += ' ⚠️ Le dépôt du PDF sur Drive a échoué.';
                 }
+                if (erreurMail) throw erreurMail;
             } catch (e) {
                 console.error('Erreur envoi PDF/mail :', e);
                 avertissementMail = ' ⚠️ Mais l\'envoi du PDF par mail a échoué.';

@@ -1220,14 +1220,21 @@ async function _saveFormOriginal() {
             data.filename = buildFilename(data);
             try {
                 const pdfBytes = await genererPdfFormulaire();
-                await envoyerMailFormulaire({
+                let erreurMail = null;
+                try {
+                    await envoyerMailFormulaire({
                     sujet: 'Contrat de cession — ' + (data.nomAdoption || data.nomUsuel || ''),
                     corps: construireCorpsMail(data),
                     pdfBytes: pdfBytes,
                     pdfNomFichier: data.filename + '.pdf',
                     emailClient: data.email,
                     nomClient: ((data.prenom || '') + ' ' + (data.nom || '')).trim()
-                });
+                    });
+                } catch (eMail) {
+                    console.error('Erreur envoi mail :', eMail);
+                    erreurMail = eMail;
+                }
+                // Le PDF est déposé sur Drive même si le mail n'est pas parti.
                 try {
                     await enregistrerPdfDrive({
                         onglet: data.onglet,
@@ -1245,6 +1252,7 @@ async function _saveFormOriginal() {
                     console.error('Erreur dépôt Drive :', eDrive);
                     avertissementMail += ' ⚠️ Le dépôt du PDF sur Drive a échoué.';
                 }
+                if (erreurMail) throw erreurMail;
             } catch (e) {
                 console.error('Erreur envoi PDF/mail :', e);
                 avertissementMail = ' ⚠️ Mais l\'envoi du PDF par mail a échoué. L\'adoption est bien enregistrée — vous pouvez imprimer le contrat avec le bouton "Imprimer" en attendant.';
