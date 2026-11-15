@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Contact — {{asso.nom}}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="entete-site.css">
+<link rel="stylesheet" href="nouveaux-formulaires.css">
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="formulaire-generique.js"></script>
+<script>
+FG.page({
+  public: true, titre: 'Nous contacter', intro: 'Une question ? Écrivez-nous, nous vous répondrons dès que possible.',
+  sections: [{ titre: 'Votre message', champs: [
+    { id:'nom', label:'Nom', type:'text', requis:true },
+    { id:'email', label:'Email', type:'email', requis:true },
+    { id:'sujet', label:'Sujet', type:'text', large:true },
+    { id:'message', label:'Message', type:'textarea', requis:true }
+  ]}],
+  libelleBouton: 'Envoyer', rpc: 'envoyer_message_contact',
+  params: function (v) { return { p_nom: v.nom, p_email: v.email, p_sujet: v.sujet, p_message: v.message, p_piege: v.piege }; },
+  messageSucces: 'Merci ! Votre message a bien été envoyé.'
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Adhésion — {{asso.nom}}</title>
+<link rel="stylesheet" href="formulaires-commun.css">
+<style>
+.signature-pad-container {
+    border: 2px solid #333;
+    border-radius: 8px;
+    margin-top: 8px;
+    display: inline-block;
+    background: #f9f9f9;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,0.15);
+    padding: 4px;
+}
+.signature-pad {
+    display: block;
+    cursor: crosshair;
+    touch-action: none;
+    border-radius: 6px;
+}
+.signature-controls {
+    margin-top: 6px;
+}
+.btn-signature {
+    padding: 5px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 10pt;
+    background: #f8f9fa;
+}
+.btn-signature:hover { background: #e9ecef; }
+@media print {
+    .signature-controls { display: none !important; }
+}
+</style>
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body data-form-id="adhesion">
+<div id="login-screen" style="position:fixed;inset:0;background:#faf7f2;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;">
+  <div style="max-width:340px;width:90%;background:#fff;border:1px solid #ddd;border-radius:10px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <h1 style="font-size:16px;margin:0 0 4px;color:#3d2b1f;">{{asso.nom}}</h1>
+    <p style="font-size:12px;color:#888;margin-bottom:16px;">Connexion requise pour accéder à ce formulaire.</p>
+    <input type="email" id="login-email" placeholder="Email" style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+    <input type="password" id="login-password" placeholder="Mot de passe" style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+    <div id="login-err" style="color:#c00000;font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+    <button type="button" onclick="seConnecterSuivi()" style="width:100%;padding:9px;background:#c96b2a;color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:13px;">Se connecter</button>
+  </div>
+</div>
+
+<!-- Boutons flottants -->
+<div class="buttons">
+    <button class="btn btn-save"  onclick="saveForm()">💾 Sauvegarder</button>
+    <button class="btn btn-print btn-print-disabled" onclick="printForm()" disabled>🖨️ Imprimer</button>
+</div>
+
+
+<div class="page-container">
+<div class="content">
+
+<!-- En-tête -->
+<div id="entete"></div>
+<div class="title">Bulletin d'adhésion</div>
+
+<!-- Intro -->
+<div class="intro-text">
+    <p>
+        <span class="bold">{{asso.nom}}</span> est une Association de Loi 1901, déclarée en préfecture de {{asso.prefecture}} le {{asso.dateDeclaration}} sous le n° {{asso.rna}} et représentée par {{asso.representant}}.
+    </p>
+    <p>
+        En adhérant, vous soutenez notre démarche de protection et vous nous aidez à sauver toujours plus de chats
+        dans le besoin.
+    </p>
+</div>
+
+<!-- Civilite -->
+<div class="section">
+    <p>
+        <span class="clickable-row" onclick="toggleCheck(this, 'civilite')">
+            <span class="checkbox" data-group="civilite"></span>
+            <span class="blue">Monsieur</span>
+        </span>
+        <span class="clickable-row" onclick="toggleCheck(this, 'civilite')">
+            <span class="checkbox" data-group="civilite"></span>
+            <span class="blue">Madame</span>
+        </span>
+    </p>
+    <p><span class="blue">Nom :</span> <input type="text" class="editable editable-long" id="nom" data-required="true" data-label="Nom" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase;"></p>
+    <p><span class="blue">Prénom :</span> <input type="text" class="editable editable-long" id="prenom" data-required="true" data-label="Prénom"></p>
+    <p><span class="blue">Adresse :</span> <input type="text" class="editable editable-long" id="adresse" data-required="true" data-label="Adresse"></p>
+    <p>
+        <span class="blue">Code postal :</span> <input type="text" class="editable editable-short" id="codePostal" data-required="true" data-label="Code postal" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        &nbsp;&nbsp;
+        <span class="blue">Ville :</span> <input type="text" class="editable editable-medium" id="ville" data-required="true" data-label="Ville">
+    </p>
+    <p><span class="blue">Portable :</span> <input type="tel" class="editable editable-tel" id="portable" data-required="true" data-label="Téléphone portable" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></p>
+    <p><span class="blue">Email :</span> <input type="email" class="editable editable-email" id="email" data-required="true" data-label="Email"></p>
+	<p><span class="blue">Date de naissance :</span>
+<input type="date"
+       class="editable editable-date"
+       id="dateNaissanceMembre"
+       data-label="Date de naissance"></p>
+</div>
+
+<!-- Type d'adhesion -->
+<div class="section">
+    <p class="bold underline">Je souhaite adhérer à l'association en tant que :</p>
+    <p class="ml-30">
+        <span class="clickable-row" onclick="toggleCheckMulti(this, event)">
+            <span class="checkbox" id="type_adherent"></span>
+            <span class="blue">Membre adhérent</span> : Cotisation annuelle de <input type="number" class="editable-num" id="cotisationAdherent" value="20" min="0" step="1" style="border:none;border-bottom:1px dotted #333;background:transparent;font-family:inherit;font-size:inherit;padding:2px;outline:none;"> euros
+        </span>
+    </p>
+    <p class="ml-30">
+        <span class="clickable-row" onclick="toggleCheckMulti(this, event)">
+            <span class="checkbox" id="type_bienfaiteur"></span>
+            <span class="blue">Membre bienfaiteur</span> : Don libre de
+        </span>
+        <input type="number" class="editable editable-num" id="donBienfaiteur"> euros
+    </p>
+    <p class="ml-30">
+        <span class="clickable-row" onclick="toggleCheckMulti(this, event)">
+            <span class="checkbox" id="type_sympathisant"></span>
+            <span class="blue">Membre sympathisant</span> : Don libre virement de
+            <input type="number" class="editable editable-num" id="donSympatisant"> euros / mois
+        </span>
+    </p>
+</div>
+
+<!-- Mode de paiement -->
+<div class="section">
+    <p class="bold underline">Je joins mon règlement par :</p>
+    <div id="paiement-section" class="ml-30">
+        <div class="paiement-ligne">
+            <span class="clickable-row" onclick="togglePaiement(this, 'virement', event)">
+                <span class="checkbox" id="pay_virement"></span> Virement
+            </span>
+            <span id="detail_virement" style="display:none;">
+                &nbsp; Montant : <input type="number" class="editable editable-num" id="montant_virement" min="0" step="0.01"> €
+            </span>
+        </div>
+        <div class="paiement-ligne">
+            <span class="clickable-row" onclick="togglePaiement(this, 'espece', event)">
+                <span class="checkbox" id="pay_espece"></span> Espèces
+            </span>
+            <span id="detail_espece" style="display:none;">
+                &nbsp; Montant : <input type="number" class="editable editable-num" id="montant_espece" min="0" step="0.01"> €
+            </span>
+        </div>
+        <div class="paiement-ligne">
+            <span class="clickable-row" onclick="togglePaiement(this, 'cheque', event)">
+                <span class="checkbox" id="pay_cheque"></span> Chèque
+            </span>
+            <span id="detail_cheque" style="display:none;">
+                &nbsp; Montant : <input type="number" class="editable editable-num" id="montant_cheque" min="0" step="0.01"> €
+                &nbsp; N° <input type="text" class="editable editable-medium" id="numeroPaiement" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            </span>
+        </div>
+        <div class="paiement-ligne">
+            <span class="clickable-row" onclick="togglePaiement(this, 'plusieurs_cheques', event)">
+                <span class="checkbox" id="pay_plusieurs_cheques"></span> Plusieurs chèques
+            </span>
+            <span id="detail_plusieurs_cheques" style="display:none;">
+                <br>&nbsp;&nbsp;
+                N°1 <input type="text" class="editable editable-short" id="cheque1" oninput="this.value=this.value.replace(/[^0-9]/g,'')"> montant : <input type="number" class="editable editable-num" id="montant_cheque1" min="0" step="0.01"> €
+                <br>&nbsp;&nbsp;
+                N°2 <input type="text" class="editable editable-short" id="cheque2" oninput="this.value=this.value.replace(/[^0-9]/g,'')"> montant : <input type="number" class="editable editable-num" id="montant_cheque2" min="0" step="0.01"> €
+                <br>&nbsp;&nbsp;
+                N°3 <input type="text" class="editable editable-short" id="cheque3" oninput="this.value=this.value.replace(/[^0-9]/g,'')"> montant : <input type="number" class="editable editable-num" id="montant_cheque3" min="0" step="0.01"> €
+                <br>&nbsp;&nbsp;
+                N°4 <input type="text" class="editable editable-short" id="cheque4" oninput="this.value=this.value.replace(/[^0-9]/g,'')"> montant : <input type="number" class="editable editable-num" id="montant_cheque4" min="0" step="0.01"> €
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Engagement -->
+<div class="section">
+    <p class="bold underline">Je m'engage par la présente adhésion à respecter les statuts et le règlement intérieur de {{asso.nom}}</p>
+</div>
+
+<!-- Lieu et date -->
+<div class="section mt-30">
+    <p class="bold">Fait à {{asso.ville}}, le <input type="date" class="editable editable-date" id="dateFait"></p>
+    <table class="signature-table">
+        <tr>
+            <td>
+                <p>{{asso.nom}} :</p>
+                <p class="mt-20">
+                    <span class="clickable-row" onclick="toggleCheck(this)" id="luApprouve1">
+                        <span class="checkbox"></span>
+                        <span class="bold"> Lu et approuvé</span>
+                    </span>
+                </p>
+                <p class="bold underline mt-20">Signature de {{asso.nom}} :</p>
+                <div id="sig2"></div>
+                <div id="sig2-print" style="display:none;">[[SIGNATURE_IMAGE]]</div>
+            </td>
+            <td>
+                <p>L'adhérent(e) :</p>
+                <p class="mt-20">
+                    <span class="clickable-row" onclick="toggleCheck(this)" id="luApprouve2">
+                        <span class="checkbox"></span>
+                        <span class="bold"> Lu et approuvé</span>
+                    </span>
+                </p>
+                <p class="bold underline mt-20">Signature de l'adhérent(e) :</p>
+                <div id="sig1"></div>
+                <div id="sig1-print" style="display:none;">[[SIGNATURE_IMAGE]]</div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+	
+</div><!-- /content -->
+</div><!-- /page-container -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="config.js"></script>
+<script src="formulaires-commun.js"></script>
+<script src="selecteur-personne.js"></script>
+<script src="generer-pdf.js"></script>
+<script src="envoyer-mail.js"></script>
+<script src="stocker-pdf-drive.js"></script>
+<script>
+creerEntete({ dateId: 'dateAdhesion', dateLabel: 'Date :' });
+creerSignature('sig1');
+creerSignature('sig2');
+appliquerPrefill();
+
+// Préremplissage depuis Contrat_adoption (même mécanisme que Dons.html :
+// les champs identiques par id sont déjà traités par appliquerPrefill()
+// ci-dessus ; seule la clé _adoption_id, propre à ce lien, a besoin d'un
+// traitement à part puisqu'elle ne correspond à aucun champ du formulaire.
+var adoptionIdDepuisPrefill = null;
+function appliquerPrefillAdhesion() {
+    var params = new URLSearchParams(window.location.search);
+    var raw = params.get('prefill');
+    if (!raw) return;
+    try {
+        var data = JSON.parse(decodeURIComponent(raw));
+        if (data._typeAdhesion === 'Membre adherent') {
+            var caseAdherent = document.getElementById('type_adherent');
+            if (caseAdherent) caseAdherent.classList.add('checked');
+        }
+        if (data._adoptionId) {
+            adoptionIdDepuisPrefill = data._adoptionId;
+            var bandeau = document.createElement('div');
+            bandeau.className = 'no-print';
+            bandeau.style.cssText = 'background:#e8f4fd;border:1px solid #b8dff5;color:#1a5a80;font-size:12.5px;padding:8px 14px;text-align:center;margin-bottom:10px;';
+            bandeau.textContent = 'Adhésion pré-remplie depuis une adoption.';
+            document.body.insertBefore(bandeau, document.body.firstChild.nextSibling);
+        }
+    } catch (e) {
+        console.error('Erreur lecture prefill adhésion :', e);
+    }
+}
+appliquerPrefillAdhesion();
+
+var today = new Date().toISOString().split('T')[0];
+['dateAdhesion', 'dateFait'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && !el.value) el.value = today;
+});
+document.addEventListener('DOMContentLoaded', function() {
+    ['dateNaissanceMembre'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+    });
+});
+
+function toggleCheckMulti(element) {
+    var box = element.querySelector('.checkbox');
+    if (box) box.classList.toggle('checked');
+}
+
+// Collecte des types d'adhésion cochés dans collectFormData
+// (ajouté automatiquement via les ids type_adherent, type_bienfaiteur, type_sympathisant)
+function getTypesAdhesion() {
+    var labels = { type_adherent: 'Membre adhérent', type_bienfaiteur: 'Membre bienfaiteur', type_sympathisant: 'Membre sympathisant' };
+    var result = [];
+    Object.keys(labels).forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el && el.classList.contains('checked')) result.push(labels[id]);
+    });
+    return result.join(', ');
+}
+
+// ============================================================
+// COHÉRENCE MONTANTS : le total des montants de "Je souhaite adhérer…"
+// doit être égal au total des montants de "Je joins mon règlement par…".
+// Calcul en centimes pour éviter les erreurs d'arrondi (0.1 + 0.2...).
+// ============================================================
+function verifierCoherenceMontants(missing) {
+    function coche(id) {
+        var e = document.getElementById(id);
+        return !!(e && e.classList.contains('checked'));
+    }
+    function centimes(id) {
+        var e = document.getElementById(id);
+        if (!e || String(e.value).trim() === '') return null;
+        var v = parseFloat(e.value);
+        return isNaN(v) ? null : Math.round(v * 100);
+    }
+    function rouge(id, on) {
+        var e = document.getElementById(id);
+        if (e) e.style.borderBottom = on ? '2px solid red' : (id === 'cotisationAdherent' ? '1px dotted #333' : '');
+    }
+    function euros(c) { return (c / 100).toFixed(2).replace('.', ',') + ' €'; }
+
+    var erreur = false;
+
+    // --- Côté adhésion : ce qui est dû ---
+    var attendu = 0, auMoinsUnType = false;
+    [
+        { box: 'type_adherent',     champ: 'cotisationAdherent', label: 'la cotisation du membre adhérent', controleNonCoche: false },
+        { box: 'type_bienfaiteur',  champ: 'donBienfaiteur',     label: 'du don du membre bienfaiteur',     controleNonCoche: true  },
+        { box: 'type_sympathisant', champ: 'donSympatisant',     label: 'du don du membre sympathisant',    controleNonCoche: true  }
+    ].forEach(function(t) {
+        var c = centimes(t.champ);
+        if (coche(t.box)) {
+            auMoinsUnType = true;
+            if (c === null || c <= 0) {
+                missing.push('Montant ' + (t.label.indexOf('la ') === 0 ? 'de ' : '') + t.label + ' (doit être supérieur à 0)');
+                rouge(t.champ, true);
+                erreur = true;
+            } else {
+                attendu += c;
+                rouge(t.champ, false);
+            }
+        } else if (t.controleNonCoche && c !== null && c > 0) {
+            // Un don est saisi mais la case n'est pas cochée : il serait ignoré du total.
+            missing.push('Un montant est saisi ' + t.label.replace('du don', 'pour le don') + ' mais la case n\'est pas cochée');
+            rouge(t.champ, true);
+            erreur = true;
+        } else {
+            rouge(t.champ, false);
+        }
+    });
+
+    // --- Côté règlement : ce qui est joint ---
+    var paye = 0, auMoinsUnMode = false;
+    [
+        { box: 'pay_virement', champs: ['montant_virement'], label: 'Virement' },
+        { box: 'pay_espece',   champs: ['montant_espece'],   label: 'Espèces' },
+        { box: 'pay_cheque',   champs: ['montant_cheque'],   label: 'Chèque' },
+        { box: 'pay_plusieurs_cheques',
+          champs: ['montant_cheque1', 'montant_cheque2', 'montant_cheque3', 'montant_cheque4'],
+          label: 'Plusieurs chèques' }
+    ].forEach(function(m) {
+        if (!coche(m.box)) { m.champs.forEach(function(id) { rouge(id, false); }); return; }
+        auMoinsUnMode = true;
+        var somme = 0, saisi = false;
+        m.champs.forEach(function(id) {
+            var c = centimes(id);
+            if (c !== null) { saisi = true; somme += c; }
+        });
+        if (!saisi || somme <= 0) {
+            missing.push('Montant du règlement (' + m.label + ')');
+            m.champs.forEach(function(id) { rouge(id, true); });
+            erreur = true;
+        } else {
+            m.champs.forEach(function(id) { rouge(id, false); });
+            paye += somme;
+        }
+    });
+
+    // --- Comparaison (seulement si le reste est cohérent, pour ne pas empiler les messages) ---
+    if (!erreur && auMoinsUnType && auMoinsUnMode && paye !== attendu) {
+        missing.push('Le total des règlements (' + euros(paye) + ') ne correspond pas au total de l\'adhésion (' + euros(attendu) + ')');
+        ['montant_virement', 'montant_espece', 'montant_cheque',
+         'montant_cheque1', 'montant_cheque2', 'montant_cheque3', 'montant_cheque4'].forEach(function(id) {
+            var e = document.getElementById(id);
+            if (e && e.offsetParent !== null && String(e.value).trim() !== '') rouge(id, true);
+        });
+    }
+}
+
+validateRequiredFields = function() {
+    var missing = [];
+
+    // Champs data-required
+    document.querySelectorAll('[data-required="true"]').forEach(function(el) {
+        var label = el.getAttribute('data-label') || el.id;
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+            if (!el.value || el.value.trim() === '') {
+                missing.push(label);
+                el.style.borderBottom = '2px solid red';
+            } else {
+                el.style.borderBottom = '';
+            }
+        }
+    });
+
+    // Type adhésion obligatoire
+    var typeIds = [
+    'type_adherent',
+    'type_bienfaiteur',
+    'type_sympathisant'
+];
+
+var typeChecked = false;
+
+typeIds.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && el.classList.contains('checked')) {
+        typeChecked = true;
+    }
+});
+
+if (!typeChecked) {
+    missing.push('Type d\'adhésion (au moins une case à cocher)');
+
+    typeIds.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.style.outline = '2px solid red';
+            el.style.outlineOffset = '1px';
+        }
+    });
+} else {
+    typeIds.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.style.outline = '';
+        }
+    });
+}
+
+    // Mode de règlement obligatoire
+    var payIds = ['pay_virement', 'pay_espece', 'pay_cheque', 'pay_plusieurs_cheques'];
+    var paiementCoche = payIds.some(function(id) {
+        var el = document.getElementById(id);
+        return el && el.classList.contains('checked');
+    });
+    if (!paiementCoche) {
+        missing.push('Mode de règlement (au moins un à cocher)');
+        payIds.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) { el.style.outline = '2px solid red'; el.style.outlineOffset = '1px'; }
+        });
+    } else {
+        payIds.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.style.outline = '';
+        });
+    }
+
+    // N° chèque obligatoire (chèque unique ou plusieurs chèques)
+    verifierNumerosCheques(missing);
+
+    // Cohérence montants adhésion / règlement
+    verifierCoherenceMontants(missing);
+
+    // Lu et approuvé
+    ['luApprouve1', 'luApprouve2'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+            var cb = el.querySelector('.checkbox');
+            if (!cb.classList.contains('checked')) {
+                var labels = { luApprouve1: 'Lu et approuvé ({{asso.nom}})', luApprouve2: 'Lu et approuvé (Adhérent)' };
+                missing.push(labels[id]);
+                cb.style.outline = '2px solid red'; cb.style.outlineOffset = '1px';
+            } else {
+                cb.style.outline = '';
+            }
+        }
+    });
+
+    // Email format
+    var elEmail = document.getElementById('email');
+    if (elEmail && elEmail.value.trim()) {
+        var valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(elEmail.value.trim());
+        if (!valid) {
+            missing.push('Email invalide');
+            elEmail.style.borderBottom = '2px solid red';
+        }
+    }
+
+    // Signatures
+    ['sig1', 'sig2'].forEach(function(sigId) {
+        var container = document.getElementById(sigId);
+        if (container && !container._signed) {
+            var labels = { sig1: 'Signature de l\'adhérent', sig2: 'Signature de {{asso.nom}}' };
+            missing.push(labels[sigId]);
+        }
+    });
+
+    return missing;
+};
+
+// ============================================================
+// SUPABASE — remplace l'envoi vers Apps Script pour ce pilote.
+// Réutilise validateRequiredFields() et collectFormData() ci-dessus
+// tels quels : seule la destination des données change.
+// ============================================================
+
+// Génération PDF + envoi mail (Apps Script) : désactivé par défaut, le
+// temps de décider comment tester cette partie sans toucher aux vraies
+// boîtes mail / au vrai Sheet. La signature et le htmlContent sont quand
+// même préparés ci-dessous, prêts à être envoyés dès que cette valeur
+// repasse à true (rien à récrire à ce moment-là).
+const ENVOYER_PDF_MAIL = true;
+
+const supabaseClient = creerClientSupabase();
+initSessionSuivi();
+chargerListeSaisisseurs();
+
+function chequesDepuisFormData(data) {
+    var cheques = [];
+    ['1', '2', '3', '4'].forEach(function(n) {
+        var num = data['cheque' + n];
+        var montant = data['montant_cheque' + n];
+        if (num || montant) {
+            cheques.push({ numero_cheque: num || null, montant: montant ? parseFloat(montant) : null });
+        }
+    });
+    if (cheques.length === 0 && (data.numeroPaiement || data.montant_cheque)) {
+        cheques.push({
+            numero_cheque: data.numeroPaiement || null,
+            montant: data.montant_cheque ? parseFloat(data.montant_cheque) : null
+        });
+    }
+    return cheques;
+}
+
+// Ouvre Dons.html dans un nouvel onglet, pré-rempli avec les infos de
+// l'adhérent et le montant du don libre (bienfaiteur ou sympathisant).
+function ouvrirFormulaireDon(champMontant) {
+    var champs = ['nom', 'prenom', 'adresse', 'codePostal', 'ville', 'email', 'saisiPar'];
+    var slim = {};
+    champs.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el && el.value) slim[id] = el.value;
+    });
+
+    var portableEl = document.getElementById('portable');
+    if (portableEl && portableEl.value) slim.telephone = portableEl.value;
+
+    var montantEl = document.getElementById(champMontant);
+    if (montantEl && montantEl.value) slim.montantDon = montantEl.value;
+
+    var dateAdhesionEl = document.getElementById('dateAdhesion');
+    if (dateAdhesionEl && dateAdhesionEl.value) slim.dateSignature = dateAdhesionEl.value;
+
+    slim._typeDonateur = 'Particulier';
+
+    var prefill = encodeURIComponent(JSON.stringify(slim));
+    var url     = 'don.html?prefill=' + prefill;
+
+    var fenetre = window.open(url, '_blank');
+    if (!fenetre) {
+        afficherMessage('Veuillez autoriser les popups pour ouvrir le formulaire de don<a href="' + url + '" target="_blank">ouvrir</a>', 'erreur');
+    }
+}
+
+async function saveForm() {
+    var missing = validateRequiredFields();
+    if (missing.length > 0) {
+        afficherMessage('⚠️ Veuillez remplir les champs obligatoires :<br><br>• ' + missing.join('<br>• '), 'erreur');
+        return;
+    }
+
+    var data = collectFormData();
+    data.onglet = document.body.getAttribute('data-form-id') || document.title.substring(0, 30);
+
+    // Préparé pour l'envoi PDF/mail futur (actuellement désactivé) — capturé
+    // maintenant pour ne rien perdre le jour où ENVOYER_PDF_MAIL repasse à true.
+    data.signatureImage = getSignatureImage();
+    data.htmlContent = encodeBase64Unicode(buildHtmlWithData());
+
+    afficherPopupChargement();
+
+    try {
+        const { data: adhesionId, error } = await supabaseClient.rpc('creer_adhesion', {
+            p_nom: data.nom,
+            p_prenom: data.prenom,
+            p_adresse: data.adresse,
+            p_code_postal: data.codePostal,
+            p_ville: data.ville,
+            p_email: data.email,
+            p_telephone: data.portable,
+            p_date_naissance: data.dateNaissanceMembre || null,
+            p_date_adhesion: data.dateAdhesion || null,
+            p_type_adhesion: getTypesAdhesion(),
+            p_cotisation_adherent: data.cotisationAdherent ? parseFloat(data.cotisationAdherent) : null,
+            p_don_bienfaiteur: data.donBienfaiteur ? parseFloat(data.donBienfaiteur) : null,
+            p_don_sympathisant: data.donSympatisant ? parseFloat(data.donSympatisant) : null,
+            p_montant_total: data.montantAdhesion || null,
+            p_montant_virement: data.montant_virement ? parseFloat(data.montant_virement) : null,
+            p_montant_espece: data.montant_espece ? parseFloat(data.montant_espece) : null,
+            p_date_fait: data.dateFait || null,
+            p_saisi_par_id: data.saisiPar || null,
+            p_cheques: chequesDepuisFormData(data),
+            p_adoption_id: adoptionIdDepuisPrefill
+        });
+
+        if (error) throw error;
+
+        var avertissementMail = '';
+        if (ENVOYER_PDF_MAIL) {
+            data.filename = buildFilename(data);
+            try {
+                const pdfBytes = await genererPdfFormulaire();
+                await envoyerMailFormulaire({
+                    sujet: 'Adhésion — ' + (data.nom || ''),
+                    corps: construireCorpsMail(data),
+                    pdfBytes: pdfBytes,
+                    pdfNomFichier: data.filename + '.pdf',
+                    emailClient: data.email,
+                    nomClient: ((data.prenom || '') + ' ' + (data.nom || '')).trim()
+                });
+                try {
+                    await enregistrerPdfDrive({
+                        onglet: data.onglet,
+                        prenom: data.prenom,
+                        nom: data.nom,
+                        dateDossier: data.dateAdhesion || null,
+                        filename: data.filename,
+                        pdfBytes: pdfBytes,
+                        tableSource: 'adhesions',
+                        enregistrementId: adhesionId,
+                        typeFichier: 'Adhésion'
+                    });
+                } catch (eDrive) {
+                    console.error('Erreur dépôt Drive :', eDrive);
+                    avertissementMail += ' ⚠️ Le dépôt du PDF sur Drive a échoué.';
+                }
+            } catch (e) {
+                console.error('Erreur envoi PDF/mail :', e);
+                avertissementMail = ' ⚠️ Mais l\'envoi du PDF par mail a échoué.';
+            }
+        }
+
+        formSaved = true;
+        var btnSave = document.querySelector('.btn-save');
+        var btnPrint = document.querySelector('.btn-print');
+        if (btnSave) {
+            btnSave.textContent = 'Sauvegarde OK';
+            btnSave.className = 'btn btn-saved';
+            btnSave.disabled = true;
+        }
+        if (btnPrint) {
+            btnPrint.textContent = 'Imprimer';
+            btnPrint.className = 'btn btn-print';
+            btnPrint.disabled = false;
+        }
+        masquerPopupChargement();
+        afficherMessage('Formulaire enregistré<br>Vous pouvez imprimer' + avertissementMail);
+
+        // Ouvre Dons.html, pré-rempli avec les infos de l'adhérent et le
+        // montant du don libre, si "Membre bienfaiteur" ou "Membre
+        // sympathisant" a été coché.
+        var bienfaiteurCoche  = document.getElementById('type_bienfaiteur')  && document.getElementById('type_bienfaiteur').classList.contains('checked');
+        var sympathisantCoche = document.getElementById('type_sympathisant') && document.getElementById('type_sympathisant').classList.contains('checked');
+        if (bienfaiteurCoche || sympathisantCoche) {
+            ouvrirFormulaireDon(bienfaiteurCoche ? 'donBienfaiteur' : 'donSympatisant');
+        }
+    } catch (err) {
+        masquerPopupChargement();
+        console.error(err);
+        alert('Erreur lors de la sauvegarde : ' + (err.message || err));
+    } finally {
+        masquerPopupChargement();
+    }
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    initSelecteurPersonne({
+        nomId: 'nom',
+        prenomId: 'prenom',
+        champs: { adresse:'adresse', codePostal:'code_postal', ville:'ville', email:'email', portable:'telephone' }
+    });
+});
+</script>
+
+</body>
+</html>

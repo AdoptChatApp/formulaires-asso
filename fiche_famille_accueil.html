@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Famille d'accueil — {{asso.nom}}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="entete-site.css">
+<link rel="stylesheet" href="nouveaux-formulaires.css">
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="selecteur-personne.js"></script>
+<script src="formulaire-generique.js"></script>
+<script>
+FG.page({
+  titre: "Fiche famille d'accueil", intro: "Profil, disponibilités et capacité d'accueil des familles d'accueil. Pour placer un animal, utilisez le formulaire « Famille d'accueil ».",
+  sections: [
+    FG.PERSONNE('Coordonnées'),
+    { titre: "Accueil", champs: [
+      { id:'disponibilite', label:'Disponibilité', type:'text', aide:'Ex. toute l\'année, étés uniquement…' },
+      { id:'capacite', label:"Capacité d'accueil (nombre d'animaux)", type:'number' },
+      { id:'experience', label:'Expérience', type:'textarea' },
+      { id:'animaux_presents', label:'Animaux présents au foyer', type:'text', large:true },
+      { id:'notes', label:'Notes', type:'textarea' }
+    ]}
+  ],
+  rpc: 'enregistrer_profil_famille_accueil', messageSucces: 'Fiche enregistrée.',
+  listes: [
+    { titre: 'Accueils en cours', vide: 'Aucun accueil en cours.',
+      charger: async function (sb) { var r = await sb.rpc('lister_familles_accueil'); if (r.error) throw r.error; return r.data.accueils_en_cours; },
+      colonnes: [ { t:'Animal', f:function(r){return r.animal;} }, { t:'Famille', f:function(r){return r.famille;} }, { t:'Depuis le', f:function(r){return FG.fmtDate(r.depuis);} }, { t:'Type', f:function(r){return r.type;} } ],
+      actions: [{ libelle:"Terminer l'accueil", f: async function (r, sb) {
+        var rep = await FG.demander("Terminer l'accueil de " + r.animal, [
+          { id:'date', label:'Date de fin', type:'date', defaut:new Date().toISOString().slice(0,10) },
+          { id:'statut', label:"Nouveau statut de l'animal", type:'select', options:[['','Ne pas changer'],['adoptable','Adoptable'],['non_adoptable','Non adoptable'],['malade','Malade'],['adopte','Adopté'],['relache','Relâché'],['decede','Décédé']] }
+        ]);
+        if (!rep) return;
+        var x = await sb.rpc('terminer_accueil', { p_accueil_id: r.id, p_date_fin: rep.date || null, p_nouveau_statut: rep.statut || null });
+        if (x.error) throw x.error;
+      } }] },
+    { titre: "Familles d'accueil enregistrées", vide: 'Aucune fiche.',
+      charger: async function (sb) { var r = await sb.rpc('lister_familles_accueil'); if (r.error) throw r.error; return r.data.profils; },
+      colonnes: [ { t:'Famille', f:function(r){return ((r.prenom||'')+' '+r.nom).trim();} }, { t:'Ville', f:function(r){return r.ville;} }, { t:'Téléphone', f:function(r){return r.telephone;} }, { t:'Capacité', f:function(r){return r.capacite;} }, { t:'En cours', f:function(r){return r.en_cours;} }, { t:'Disponibilité', f:function(r){return r.disponibilite;} } ] }
+  ]
+});
+</script>
+</body>
+</html>

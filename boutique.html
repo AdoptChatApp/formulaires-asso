@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Boutique — {{asso.nom}}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="entete-site.css">
+<link rel="stylesheet" href="nouveaux-formulaires.css">
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="selecteur-personne.js"></script>
+<script src="formulaire-generique.js"></script>
+<script>
+FG.page({
+  titre: "Boutique — vente d'objets", intro: "Enregistrer les ventes d'objets (calendriers, tote bags, peluches…) lors des événements ou en ligne.",
+  sections: [
+    FG.PERSONNE('Client (facultatif)', false),
+    { titre: 'Vente', champs: [
+      { id:'date_vente', label:'Date', type:'date', requis:true },
+      { id:'article', label:'Article', type:'text', requis:true },
+      { id:'quantite', label:'Quantité', type:'number', requis:true, defaut:'1' },
+      { id:'prix_unitaire', label:'Prix unitaire (€)', type:'number', requis:true },
+      { id:'mode_paiement', label:'Mode de paiement', type:'select', options:['Espèces','Chèque','Carte bancaire','Virement'] },
+      { id:'commentaires', label:'Commentaires', type:'textarea' },
+      { id:'saisi_par', label:'Saisi par', type:'saisisseur' }
+    ]}
+  ],
+  rpc: 'creer_vente_boutique', messageSucces: 'Vente enregistrée.',
+  listes: [{ titre: 'Dernières ventes', vide: 'Aucune vente.',
+    charger: async function (sb) { var r = await sb.rpc('lister_ventes_boutique'); if (r.error) throw r.error; return r.data.slice(0, 50); },
+    colonnes: [ { t:'Date', f:function(r){return FG.fmtDate(r.date_vente);} }, { t:'Article', f:function(r){return r.article;} }, { t:'Qté', f:function(r){return r.quantite;} },
+      { t:'Prix unitaire', f:function(r){return FG.fmtEuro(r.prix_unitaire);} }, { t:'Total', f:function(r){return FG.fmtEuro(r.montant_total);} }, { t:'Paiement', f:function(r){return r.mode_paiement;} }, { t:'Client', f:function(r){return r.client;} } ] }]
+});
+</script>
+</body>
+</html>

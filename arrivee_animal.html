@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="stylesheet" href="entete-site.css">
+<title>Nouvelle arrivée — {{asso.nom}}</title>
+<link rel="stylesheet" href="formulaires-commun.css">
+<style>
+  :root{ --cream:#faf7f2; --warm:#f0e8d8; --brown:#3d2b1f; --orange:#c96b2a; --grey:#8a7968; --red:#c00000; --green:#2e7d32; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:Arial,sans-serif;background:var(--cream);color:var(--brown);}
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px 60px;}
+  .card{background:#fff;border:1px solid var(--warm);border-radius:12px;padding:16px 18px;margin-bottom:18px;}
+  .card h2{font-size:13px;margin:0 0 12px;color:var(--orange);}
+  .champ{margin-bottom:10px;}
+  .champ label{display:block;font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px;}
+  .champ label .req{color:var(--red);}
+  .champ label.btn{color:#fff;text-transform:none;letter-spacing:normal;margin-bottom:0;}
+  .champ input, .champ select, .champ textarea{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--warm);border-radius:6px;font-size:13px;background:#fff;font-family:inherit;}
+  .champ textarea{resize:vertical;min-height:56px;}
+  .ligne2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ligne3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .cases{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px;}
+  .cases label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;text-transform:none;}
+  .cases input[type=checkbox]{width:16px;height:16px;}
+  .btn{padding:9px 18px;background:var(--orange);color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:13px;}
+  .btn:hover{opacity:0.92;}
+  .msg{font-size:12px;margin-top:8px;min-height:16px;}
+  .msg.ok{color:var(--green);} .msg.err{color:var(--red);}
+  #login-err{color:var(--red);font-size:12px;margin-bottom:10px;min-height:16px;}
+  .popup-overlay{position:fixed;inset:0;background:rgba(61,43,31,0.45);z-index:9999;display:none;align-items:center;justify-content:center;}
+  .popup-overlay.show{display:flex;}
+  .popup-box{background:#fff;border-radius:12px;padding:28px 24px;max-width:320px;width:90%;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.18);}
+  .popup-box .popup-icon{font-size:38px;color:var(--green);margin-bottom:10px;}
+  .popup-box p{font-size:14px;margin:0 0 16px;color:var(--brown);}
+  .popup-box button{padding:8px 22px;background:var(--orange);color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:13px;}
+</style>
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+
+
+<div id="login-screen" style="position:fixed;inset:0;background:var(--cream);z-index:99999;display:flex;align-items:center;justify-content:center;">
+  <div style="max-width:340px;width:90%;background:#fff;border:1px solid var(--warm);border-radius:10px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <h1 style="font-size:16px;margin:0 0 4px;">{{asso.nom}}</h1>
+    <p style="font-size:12px;color:var(--grey);margin-bottom:16px;">Connexion requise.</p>
+    <input type="email" id="login-email" placeholder="Email" style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+    <input type="password" id="login-password" placeholder="Mot de passe" style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+    <div id="login-err"></div>
+    <button type="button" onclick="seConnecterSuivi()" style="width:100%;padding:9px;background:var(--orange);color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:13px;">Se connecter</button>
+  </div>
+</div>
+
+<div id="popup-succes" class="popup-overlay" onclick="if(event.target===this && document.getElementById('popup-lien-fiche').style.display==='none')fermerPopupSucces()">
+  <div class="popup-box">
+    <div class="popup-icon">✅</div>
+    <p>Arrivée enregistrée avec succès.</p>
+    <p id="popup-lien-fiche" style="display:none;margin:0;">
+      <a href="#" id="lien-fiche" target="_blank" onclick="setTimeout(fermerPopupSucces,100);document.getElementById('rappel-fiche').style.display='none'" style="color:var(--orange);font-weight:bold;font-size:15px;">→ Ouvrir le formulaire</a>
+      <br><button type="button" onclick="fermerPopupSucces()" style="margin-top:14px;">Fermer</button>
+    </p>
+  </div>
+</div>
+
+<div style="max-width:900px;margin:0 auto;padding:0 16px;">
+  <div id="entete"></div>
+  <p style="font-size:11px;color:var(--grey);margin:-8px 0 12px;">Déclarer l'arrivée d'un nouvel animal (trappage, dépôt, abandon, saisie, naissance à l'association)</p>
+  <p id="rappel-fiche" style="display:none;margin:0 0 12px;padding:10px 14px;background:#fff3e0;border:1px solid var(--orange);border-radius:8px;font-size:13px;">
+    Formulaire à compléter : <a href="#" id="lien-fiche-rappel" target="_blank" onclick="this.parentNode.style.display='none'" style="color:var(--orange);font-weight:bold;">→ Ouvrir le formulaire</a>
+  </p>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>Nouvelle arrivée</h2>
+
+    <div class="champ">
+      <label>Nom de l'animal <span class="req">*</span></label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="arr-nom" data-uppercase="true" style="flex:0 0 70%;min-width:0;">
+        <button type="button" class="btn" style="flex:0 0 30%;padding:8px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" onclick="suggererNomArrivee()">🎲 Nom aléatoire</button>
+      </div>
+    </div>
+
+    <div class="ligne3">
+      <div class="champ">
+        <label>Type d'animal <span class="req">*</span></label>
+        <select id="arr-espece" onchange="appliquerEspece()">
+          <option value="chat" selected>Chat</option>
+          <option value="chien">Chien</option>
+          <option value="lapin">Lapin</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+      <div class="champ">
+        <label>Sexe</label>
+        <select id="arr-sexe">
+          <option value="">— Inconnu —</option>
+          <option value="F">Femelle</option>
+          <option value="M">Mâle</option>
+        </select>
+      </div>
+      <div class="champ">
+        <label>Date de naissance</label>
+        <input type="date" id="arr-date-naissance">
+      </div>
+    </div>
+
+    <div class="champ" id="bloc-chaton">
+      <label class="cases" style="text-transform:none;color:var(--brown);font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <input type="checkbox" id="arr-chaton" style="width:16px;height:16px;"> Chaton
+      </label>
+    </div>
+
+    <div class="ligne2">
+      <div class="champ">
+        <label>Origine <span class="req">*</span></label>
+        <select id="arr-origine" onchange="appliquerOrigine()">
+          <option value="">— Choisir —</option>
+          <option value="trappage">Trappage</option>
+          <option value="depot">Dépôt</option>
+          <option value="abandon">Abandon</option>
+          <option value="saisie">Saisie</option>
+          <option value="ne_a_association">Né à l'association</option>
+        </select>
+      </div>
+      <div class="champ">
+        <label>Date d'arrivée <span class="req">*</span></label>
+        <input type="date" id="arr-date">
+      </div>
+    </div>
+
+    <div class="ligne2">
+      <div class="champ">
+        <label>Couleur <span class="req">*</span></label>
+        <input type="text" id="arr-couleur" data-uppercase="true">
+      </div>
+      <div class="champ">
+        <label>Puce</label>
+        <input type="text" id="arr-puce" data-uppercase="true">
+      </div>
+    </div>
+
+    <div class="champ" id="bloc-deja-fait">
+      <label>Déjà fait à l'arrivée</label>
+      <div class="cases">
+        <label><input type="checkbox" id="arr-sterilise"> Stérilisé</label>
+        <label><input type="checkbox" id="arr-vermifuge"> Vermifugé</label>
+        <label><input type="checkbox" id="arr-antipuce"> Antipuce</label>
+      </div>
+    </div>
+
+    <div class="champ">
+      <label>Nom de la maman (si connue)</label>
+      <input type="text" id="arr-nom-maman" data-uppercase="true">
+    </div>
+
+    <div class="ligne2" id="bloc-personne-origine">
+      <div class="champ">
+        <label>Nom de la personne à l'origine <span class="req" id="req-nom-personne" style="display:none;">*</span></label>
+        <input type="text" id="arr-nom-personne" data-uppercase="true">
+      </div>
+      <div class="champ">
+        <label>Prénom <span class="req" id="req-prenom-personne" style="display:none;">*</span></label>
+        <input type="text" id="arr-prenom-personne" data-uppercase="true">
+      </div>
+    </div>
+    <div class="champ" id="bloc-motif">
+      <label id="lbl-motif">Motif / précisions <span class="req" id="req-motif" style="display:none;">*</span></label>
+      <input type="text" id="arr-motif" data-uppercase="true">
+    </div>
+    <div class="champ">
+      <label>Autre info</label>
+      <textarea id="arr-autre-info" data-uppercase="true" placeholder="Toute autre information utile sur l'animal…"></textarea>
+    </div>
+    <div class="champ">
+      <label>Photo de l'animal (facultative)</label>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <label class="btn" style="cursor:pointer;">
+          📷 Prendre en photo
+          <input type="file" accept="image/*" capture="environment" id="photoAnimal" style="display:none;" onchange="aperçuPhoto(this, 'preview_Animal')">
+        </label>
+        <button type="button" class="btn" id="btn_voir_animal" style="display:none;" onclick="ouvrirPhoto('preview_Animal')">Voir la photo</button>
+      </div>
+      <div id="preview_Animal" style="margin-top:6px;"></div>
+    </div>
+
+    <button type="button" class="btn" onclick="declarerArrivee()">Enregistrer l'arrivée</button>
+    <div id="arr-msg" class="msg"></div>
+  </div>
+
+  <p style="font-size:12px;"><a href="statuts_animaux.html">→ Faire évoluer le statut d'un animal déjà connu</a></p>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="config.js"></script>  
+<script src="formulaires-commun.js"></script>
+<script src="noms-chats.js"></script>
+<script src="generer-pdf.js"></script>
+<script src="envoyer-mail.js"></script>
+<script src="stocker-pdf-drive.js"></script>
+<script>
+const supabaseClient = creerClientSupabase();
+initSessionSuivi();
+
+function fermerPopupSucces() {
+  document.getElementById('popup-succes').classList.remove('show');
+}
+
+// La case "Chaton" n'a de sens que pour un chat — masquée (et décochée)
+// pour les autres espèces.
+function appliquerEspece() {
+  const chaton = document.getElementById('arr-chaton');
+  const estChat = document.getElementById('arr-espece').value === 'chat';
+  document.getElementById('bloc-chaton').style.display = estChat ? '' : 'none';
+  if (!estChat) chaton.checked = false;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  creerEntete({ dateId: 'dateRef', dateLabel: 'Date :', titre: 'Nouvelle arrivée' });
+  chargerListeSaisisseurs();
+  document.getElementById('arr-date').valueAsDate = new Date();
+  appliquerOrigine();
+  appliquerEspece();
+});
+
+// Adapte les champs visibles/obligatoires du formulaire selon l'origine choisie
+function appliquerOrigine() {
+  const origine = document.getElementById('arr-origine').value;
+
+  const blocDejaFait   = document.getElementById('bloc-deja-fait');
+  const blocPersonne   = document.getElementById('bloc-personne-origine');
+  const blocMotif      = document.getElementById('bloc-motif');
+  const lblMotif       = document.getElementById('lbl-motif');
+  const reqNomPersonne = document.getElementById('req-nom-personne');
+  const reqPrenomPers  = document.getElementById('req-prenom-personne');
+  const reqMotif       = document.getElementById('req-motif');
+  const champNomPers   = document.getElementById('arr-nom-personne');
+  const champPrenomPers= document.getElementById('arr-prenom-personne');
+  const champMotif     = document.getElementById('arr-motif');
+
+  // État par défaut : tout visible, rien obligatoire, libellé standard
+  blocDejaFait.style.display = '';
+  blocPersonne.style.display = '';
+  blocMotif.style.display = '';
+  reqNomPersonne.style.display = 'none';
+  reqPrenomPers.style.display = 'none';
+  reqMotif.style.display = 'none';
+  lblMotif.firstChild.textContent = 'Motif / précisions ';
+  champMotif.placeholder = '';
+
+  if (origine === 'ne_a_association') {
+    blocDejaFait.style.display = 'none';
+    blocPersonne.style.display = 'none';
+    blocMotif.style.display = 'none';
+    champNomPers.value = '';
+    champPrenomPers.value = '';
+    champMotif.value = '';
+  } else if (origine === 'depot' || origine === 'abandon') {
+    blocDejaFait.style.display = 'none';
+    blocMotif.style.display = 'none';
+    champMotif.value = '';
+    reqNomPersonne.style.display = '';
+    reqPrenomPers.style.display = '';
+  } else if (origine === 'trappage') {
+    reqNomPersonne.style.display = '';
+    reqPrenomPers.style.display = '';
+    reqMotif.style.display = '';
+    lblMotif.firstChild.textContent = 'Commune ';
+    champMotif.placeholder = "Commune où l'animal a été trappé";
+  } else if (origine === 'saisie') {
+    reqNomPersonne.style.display = '';
+    reqPrenomPers.style.display = '';
+  }
+}
+
+async function aperçuPhoto(input, previewId) {
+  const preview = document.getElementById(previewId);
+  if (!preview || !input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    preview._photoBase64 = e.target.result;
+    preview.innerHTML = '<img src="' + e.target.result + '" style="max-width:300px;max-height:225px;border:1px solid #ccc;border-radius:4px;display:block;" alt="Photo animal">' +
+      '<span style="font-size:10px;color:var(--green);display:block;margin-top:2px;">✔ ' + file.name + '</span>';
+    document.getElementById('btn_voir_animal').style.display = 'inline-block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function suggererNomArrivee() {
+  const champ = document.getElementById('arr-nom');
+  const nom = await proposerNomAleatoireChat(champ.value.trim());
+  if (nom) champ.value = nom;
+  else alert("Impossible de proposer un nom pour l'instant (réessayez, ou saisissez-en un vous-même).");
+}
+
+async function declarerArrivee() {
+  const msg = document.getElementById('arr-msg');
+  msg.textContent = ''; msg.className = 'msg';
+
+  const nom = document.getElementById('arr-nom').value.trim();
+  const origine = document.getElementById('arr-origine').value;
+  const date = document.getElementById('arr-date').value;
+  const couleur = document.getElementById('arr-couleur').value.trim();
+  const saisiPar = document.getElementById('saisiPar').value;
+
+  const nomPersonne = document.getElementById('arr-nom-personne').value.trim();
+  const prenomPersonne = document.getElementById('arr-prenom-personne').value.trim();
+  const motif = document.getElementById('arr-motif').value.trim();
+
+  if (!nom) { msg.textContent = 'Le nom est obligatoire.'; msg.className = 'msg err'; return; }
+  if (!origine) { msg.textContent = "L'origine est obligatoire."; msg.className = 'msg err'; return; }
+  if (!couleur) { msg.textContent = 'La couleur est obligatoire.'; msg.className = 'msg err'; return; }
+  if (!saisiPar) { msg.textContent = '"Saisi par" est obligatoire.'; msg.className = 'msg err'; return; }
+  if (origine === 'trappage' || origine === 'depot' || origine === 'abandon' || origine === 'saisie') {
+    if (!nomPersonne) { msg.textContent = "Le nom de la personne à l'origine est obligatoire."; msg.className = 'msg err'; return; }
+    if (!prenomPersonne) { msg.textContent = 'Le prénom est obligatoire.'; msg.className = 'msg err'; return; }
+  }
+  if (origine === 'trappage' && !motif) { msg.textContent = 'La commune est obligatoire.'; msg.className = 'msg err'; return; }
+  const fichierPhoto = document.getElementById('photoAnimal').files[0];
+
+  afficherPopupChargement();
+
+  try {
+    const { data, error } = await supabaseClient.rpc('creer_arrivee_animal', {
+      p_nom_usuel: nom,
+      p_origine_arrivee: origine,
+      p_date_arrivee: date || null,
+      p_couleur: couleur,
+      p_date_naissance: document.getElementById('arr-date-naissance').value || null,
+      p_puce: document.getElementById('arr-puce').value.trim() || null,
+      p_nom_personne: document.getElementById('arr-nom-personne').value.trim() || null,
+      p_prenom_personne: document.getElementById('arr-prenom-personne').value.trim() || null,
+      p_motif: document.getElementById('arr-motif').value.trim() || null,
+      p_saisi_par_id: saisiPar,
+      p_sexe: document.getElementById('arr-sexe').value || null,
+      p_espece: document.getElementById('arr-espece').value || 'chat',
+      p_sterilise: document.getElementById('arr-sterilise').checked,
+      p_vermifuge: document.getElementById('arr-vermifuge').checked,
+      p_antipuce: document.getElementById('arr-antipuce').checked,
+      p_autre_info: document.getElementById('arr-autre-info').value.trim() || null,
+      p_nom_maman: document.getElementById('arr-nom-maman').value.trim() || null,
+      p_chaton: document.getElementById('arr-chaton').checked
+    });
+
+    if (error) throw error;
+
+    let photoOk = true;
+    try {
+      photoOk = await envoyerPhotoAnimal('arrivee animal',
+        document.getElementById('arr-prenom-personne').value.trim(),
+        document.getElementById('arr-nom-personne').value.trim(),
+        nom, date);
+      // Mémorise aussi la photo en base (data = id du nouvel animal)
+      if (!(await enregistrerPhotoAnimalEnBase(data, 'arrivee'))) photoOk = false;
+    } catch (ePhoto) {
+      console.error('Erreur envoi photo :', ePhoto);
+      photoOk = false;
+    }
+
+    // PDF de la fiche d'arrivée -> Drive (dossier Arrivee_Animal/date) + lien en base
+    let pdfOk = true;
+    try { await deposerPdfArrivee(data, nom, date, fichierPhoto); }
+    catch (ePdf) { console.error('Erreur PDF arrivée :', ePdf); pdfOk = false; }
+
+    msg.textContent = '';
+    msg.className = 'msg';
+    const pPopup = document.getElementById('popup-succes').querySelector('p');
+    pPopup.textContent = 'Arrivée enregistrée avec succès.';
+    if (!photoOk) pPopup.textContent = "Arrivée enregistrée, mais l'envoi de la photo a échoué — à reprendre plus tard si besoin.";
+    if (!pdfOk) pPopup.textContent += " Le PDF de la fiche n'a pas pu être déposé sur Drive.";
+
+    invaliderCacheNomsAnimauxPresents();
+
+    // Gestion de l'ouverture automatique post-sauvegarde (similaire au reçu fiscal de Dons)
+    if (origine === 'abandon' || origine === 'depot') {
+      const champsPrefill = {};
+      if (nomPersonne) champsPrefill.nom = nomPersonne;
+      if (prenomPersonne) champsPrefill.prenom = prenomPersonne;
+
+      if (origine === 'abandon') {
+        if (nom) champsPrefill.nomAnimal = nom;
+        const puce = document.getElementById('arr-puce').value.trim();
+        if (puce) champsPrefill.identification = puce;
+        const sexeVal = document.getElementById('arr-sexe').value;
+        if (sexeVal === 'M') champsPrefill.sexe = 'Mâle';
+        if (sexeVal === 'F') champsPrefill.sexe = 'Femelle';
+        const naissance = document.getElementById('arr-date-naissance').value;
+        if (naissance) {
+          const [aaaa, mm, jj] = naissance.split('-');
+          champsPrefill.dateNaissance = jj + '/' + mm + '/' + aaaa;
+        }
+      }
+
+      if (origine === 'depot') {
+        const especeVal = document.getElementById('arr-espece').value;
+        const estChaton = document.getElementById('arr-chaton').checked;
+        if (especeVal === 'chat') {
+          if (estChaton) champsPrefill.nombreChatons = 1;
+          else champsPrefill.nombreChats = 1;
+        } else {
+          champsPrefill.nombreAutres = 1;
+          const labelsEspece = { chien: 'Chien', lapin: 'Lapin', autre: '' };
+          champsPrefill.preciserAutre = labelsEspece[especeVal] !== undefined ? labelsEspece[especeVal] : especeVal;
+        }
+      }
+
+      const paramsUrl = [];
+      if (Object.keys(champsPrefill).length) {
+        paramsUrl.push('prefill=' + encodeURIComponent(JSON.stringify(champsPrefill)));
+      }
+      if (data) {
+        paramsUrl.push('animalId=' + encodeURIComponent(data));
+      }
+
+      const fichierCible = origine === 'abandon' ? 'abandon.html' : 'depot_chat.html';
+      const urlFiche = fichierCible + (paramsUrl.length ? '?' + paramsUrl.join('&') : '');
+
+      document.getElementById('lien-fiche').href = urlFiche;
+      document.getElementById('lien-fiche-rappel').href = urlFiche;
+      document.getElementById('rappel-fiche').style.display = 'block';
+      document.getElementById('popup-lien-fiche').style.display = 'block';
+      document.getElementById('popup-succes').classList.add('show');
+    } else {
+      document.getElementById('popup-lien-fiche').style.display = 'none';
+      document.getElementById('rappel-fiche').style.display = 'none';
+      document.getElementById('popup-succes').classList.add('show');
+      setTimeout(fermerPopupSucces, 2000);
+    }
+
+    ['arr-nom','arr-couleur','arr-puce','arr-nom-personne','arr-prenom-personne','arr-motif','arr-date-naissance','arr-autre-info','arr-nom-maman']
+      .forEach(function(id) { document.getElementById(id).value = ''; });
+    document.getElementById('arr-sexe').value = '';
+    document.getElementById('arr-espece').value = 'chat';
+    document.getElementById('arr-origine').value = '';
+    document.getElementById('arr-chaton').checked = false;
+    appliquerEspece();
+    var champSaisiPar = document.getElementById('saisiPar');
+    champSaisiPar.selectedIndex = 0;
+    champSaisiPar.value = '';
+    document.getElementById('arr-sterilise').checked = false;
+    document.getElementById('arr-vermifuge').checked = false;
+    document.getElementById('arr-antipuce').checked = false;
+    document.getElementById('arr-date').valueAsDate = new Date();
+    document.getElementById('photoAnimal').value = '';
+    document.getElementById('preview_Animal').innerHTML = '';
+    document.getElementById('btn_voir_animal').style.display = 'none';
+    appliquerOrigine();
+
+  } catch (err) {
+    console.error('Erreur lors de la déclaration d\'arrivée :', err);
+    msg.textContent = 'Erreur : ' + (err.message || err);
+    msg.className = 'msg err';
+  } finally {
+    masquerPopupChargement();
+  }
+}
+
+// Fiche d'arrivée en PDF (HTML autonome : cette page n'est pas un formulaire imprimable)
+async function deposerPdfArrivee(animalId, nom, date, fichierPhoto) {
+  const v = id => (document.getElementById(id).value || '').trim();
+  const lib = id => { const e = document.getElementById(id); return e.tagName === 'SELECT' ? (e.options[e.selectedIndex]?.text || '') : e.value.trim(); };
+  const esc = x => String(x || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const photo = fichierPhoto ? await new Promise(res => redimensionnerImage(fichierPhoto, b64 => res(b64 ? 'data:image/jpeg;base64,' + b64 : ''), 800)) : '';
+  const cases = [['arr-sterilise','Stérilisé(e)'],['arr-vermifuge','Vermifugé(e)'],['arr-antipuce','Antipuce'],['arr-chaton','Chaton']]
+    .filter(c => document.getElementById(c[0]).checked).map(c => c[1]).join(', ');
+  const lignes = [
+    ['Nom', nom], ['Espèce', lib('arr-espece')], ['Sexe', lib('arr-sexe')], ['Couleur', v('arr-couleur')],
+    ['Date de naissance', v('arr-date-naissance')], ['Puce', v('arr-puce')], ['Nom de la maman', v('arr-nom-maman')],
+    ["Origine de l'arrivée", lib('arr-origine')], ["Date d'arrivée", date],
+    ['Personne à l\'origine', (v('arr-prenom-personne') + ' ' + v('arr-nom-personne')).trim()], ['Commune / motif', v('arr-motif')],
+    ['Informations', cases], ['Autres informations', v('arr-autre-info')], ['Saisi par', lib('saisiPar')]
+  ].filter(l => l[1]);
+  let html = '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><style>' +
+    'body{font-family:Arial,sans-serif;color:#3d2b1f;margin:32px;font-size:13px;} h1{font-size:20px;color:#c96b2a;margin:0 0 4px;}' +
+    '.sous{color:#8a7968;margin-bottom:18px;} table{border-collapse:collapse;width:100%;} td{padding:6px 8px;border-bottom:1px solid #eee;vertical-align:top;}' +
+    'td:first-child{width:200px;color:#8a7968;text-transform:uppercase;font-size:11px;} img.photo{max-width:260px;max-height:200px;border:1px solid #ccc;border-radius:6px;margin:14px 0;display:block;}' +
+    '</style></head><body><img src="logo.png" style="height:60px;"><h1>Fiche d\'arrivée — ' + esc(nom) + '</h1><div class="sous">{{asso.nom}} — ' + esc(date) + '</div>' +
+    (photo ? '<img class="photo" src="' + photo + '">' : '') +
+    '<table>' + lignes.map(l => '<tr><td>' + esc(l[0]) + '</td><td>' + esc(l[1]) + '</td></tr>').join('') + '</table></body></html>';
+  html = await _logoEnBase64DansHtml(html);
+  const pdfBytes = await genererPdfDepuisHtml(html);
+  const filename = ['Arrivee', nom || 'Animal', date].filter(Boolean).join('_').replace(/\s+/g, '_');
+  await enregistrerPdfDrive({
+    onglet: 'arrivee animal', prenom: v('arr-prenom-personne'), nom: v('arr-nom-personne'), animal: nom,
+    dateDossier: date, filename: filename, pdfBytes: pdfBytes,
+    tableSource: 'animaux', enregistrementId: animalId, typeFichier: "Fiche d'arrivée"
+  });
+}
+</script>
+</body>
+</html>

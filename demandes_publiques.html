@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Demandes reçues — {{asso.nom}}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="entete-site.css">
+<link rel="stylesheet" href="nouveaux-formulaires.css">
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="selecteur-personne.js"></script>
+<script src="formulaire-generique.js"></script>
+<script>
+function ligneStatut(table) { return table; }
+FG.page({
+  titre: 'Demandes reçues du site', intro: 'Messages du formulaire de contact et demandes de pré-adoption.',
+  sections: [],
+  listes: [
+    { titre: 'Demandes de pré-adoption', vide: 'Aucune demande.',
+      charger: async function (sb) { var r = await sb.rpc('lister_demandes_publiques'); if (r.error) throw r.error; return r.data.preadoptions; },
+      colonnes: [
+        { t:'Reçue le', f:function(r){return FG.fmtDate(r.cree_le);} },
+        { t:'Candidat', f:function(r){return ((r.prenom||'')+' '+r.nom).trim();} },
+        { t:'Contact', f:function(r){return [r.email,r.telephone,[r.code_postal,r.ville].filter(Boolean).join(' ')].filter(Boolean).join(' · ');} },
+        { t:'Animal', f:function(r){return r.animal_souhaite;} },
+        { t:'Logement', f:function(r){return [r.type_logement,r.surface_m2?r.surface_m2+' m²':'',r.statut_logement,r.exterieur].filter(Boolean).join(', ');} },
+        { t:'Foyer', f:function(r){return [r.composition_foyer,r.nombre_enfants?r.nombre_enfants+' enfant(s)':'',r.autres_animaux].filter(Boolean).join(' · ');} },
+        { t:'Statut', f:function(r){return r.statut.replace('_',' ');} }
+      ],
+      actions: [
+        { libelle:'En cours', si:function(r){return r.statut==='nouvelle';}, f:async function(r,sb){var x=await sb.rpc('traiter_demande_publique',{p_type:'preadoption',p_id:r.id,p_valeur:'en_cours'}); if(x.error) throw x.error;} },
+        { libelle:'Acceptée', si:function(r){return ['nouvelle','en_cours','visite_prevue'].indexOf(r.statut)>-1;}, f:async function(r,sb){var x=await sb.rpc('traiter_demande_publique',{p_type:'preadoption',p_id:r.id,p_valeur:'acceptee'}); if(x.error) throw x.error;} },
+        { libelle:'Refusée', si:function(r){return ['nouvelle','en_cours','visite_prevue'].indexOf(r.statut)>-1;}, f:async function(r,sb){var x=await sb.rpc('traiter_demande_publique',{p_type:'preadoption',p_id:r.id,p_valeur:'refusee'}); if(x.error) throw x.error;} }
+      ] },
+    { titre: 'Messages de contact', vide: 'Aucun message.',
+      charger: async function (sb) { var r = await sb.rpc('lister_demandes_publiques'); if (r.error) throw r.error; return r.data.messages; },
+      colonnes: [
+        { t:'Reçu le', f:function(r){return FG.fmtDate(r.cree_le);} },
+        { t:'De', f:function(r){return r.nom+' <'+r.email+'>';} },
+        { t:'Sujet', f:function(r){return r.sujet;} },
+        { t:'Message', f:function(r){return r.message;} },
+        { t:'Traité', f:function(r){return r.traite?'Oui':'Non';} }
+      ],
+      actions: [
+        { libelle:'Marquer traité', si:function(r){return !r.traite;}, f:async function(r,sb){var x=await sb.rpc('traiter_demande_publique',{p_type:'message',p_id:r.id,p_valeur:'oui'}); if(x.error) throw x.error;} }
+      ] }
+  ]
+});
+</script>
+</body>
+</html>

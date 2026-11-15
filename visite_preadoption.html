@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Visite de pré-adoption — {{asso.nom}}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="entete-site.css">
+<link rel="stylesheet" href="nouveaux-formulaires.css">
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="selecteur-personne.js"></script>
+<script src="formulaire-generique.js"></script>
+<script>
+FG.page({
+  titre: 'Visite de pré-adoption', intro: "Compte rendu de la visite à domicile réalisée par un bénévole avant validation de l'adoption.",
+  sections: [
+    FG.PERSONNE("Famille visitée"),
+    { titre: 'Visite', champs: [
+      { id:'animal_id', label:'Animal concerné (facultatif)', type:'animal', statuts:['adoptable','reserve','famille_accueil'] },
+      { id:'date_visite', label:'Date de la visite', type:'date', requis:true },
+      { id:'visiteur', label:'Visite réalisée par', type:'text' },
+      { id:'logement_conforme', label:'Logement conforme', type:'select', options:[['true','Oui'],['false','Non']] },
+      { id:'securisation', label:'Sécurisation (fenêtres, balcon, produits dangereux…)', type:'textarea' },
+      { id:'environnement', label:'Environnement (circulation, calme, extérieur)', type:'textarea' },
+      { id:'presence_autres_animaux', label:'Autres animaux et entente prévue', type:'textarea' },
+      { id:'avis', label:'Avis du visiteur', type:'select', requis:true, options:[['favorable','Favorable'],['reserve','Réservé'],['defavorable','Défavorable']] },
+      { id:'commentaires', label:'Commentaires', type:'textarea' },
+      { id:'saisi_par', label:'Saisi par', type:'saisisseur' }
+    ]}
+  ],
+  rpc: 'creer_visite_preadoption', messageSucces: 'Visite enregistrée.'
+});
+</script>
+</body>
+</html>

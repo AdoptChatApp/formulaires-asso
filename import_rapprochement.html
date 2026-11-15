@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Import relevé bancaire — Compta {{asso.nom}}</title>
+<link rel="stylesheet" href="compta-style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  .steps{display:flex;gap:0;margin-bottom:20px;}
+  .step{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border:0.5px solid var(--border);font-size:12px;color:var(--text-3);flex:1;}
+  .step:first-child{border-radius:var(--radius-sm) 0 0 var(--radius-sm);}
+  .step:last-child{border-radius:0 var(--radius-sm) var(--radius-sm) 0;}
+  .step-num{width:22px;height:22px;border-radius:50%;background:var(--surface-2);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;}
+  .step.active{background:var(--orange);color:white;border-color:var(--orange);}
+  .step.active .step-num{background:rgba(255,255,255,0.25);border-color:transparent;color:white;}
+  .step.done{background:var(--green-bg);color:var(--green);border-color:rgba(59,109,17,0.2);}
+  .dropzone{border:2px dashed var(--border-mid);border-radius:var(--radius);padding:40px 20px;text-align:center;cursor:pointer;background:var(--surface);}
+  .dropzone:hover,.dropzone.drag-over{border-color:var(--orange);background:rgba(201,107,42,0.04);}
+  .mapping-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:14px;}
+  .mapping-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .form-group{display:flex;flex-direction:column;gap:4px;}
+  .form-label{font-size:10px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.5px;}
+  .form-label.req::after{content:' *';color:var(--red);}
+  .f-select,.f-input{font-size:12px;padding:5px 8px;border-radius:var(--radius-sm);border:0.5px solid var(--border-mid);background:var(--surface);}
+  .preview-table{max-height:260px;overflow:auto;border:0.5px solid var(--border);border-radius:var(--radius-sm);margin-top:12px;}
+  table{width:100%;border-collapse:collapse;font-size:11px;}
+  thead th{text-align:left;font-size:9px;font-weight:600;color:var(--text-3);text-transform:uppercase;padding:6px 8px;border-bottom:0.5px solid var(--border);background:var(--surface-2);white-space:nowrap;position:sticky;top:0;}
+  tbody td{padding:6px 8px;border-bottom:0.5px solid var(--border);}
+  .r{text-align:right;font-variant-numeric:tabular-nums;}
+  .amount-c{color:var(--green);} .amount-d{color:var(--red);}
+  .chip{font-size:9px;padding:2px 7px;border-radius:10px;border:0.5px solid;}
+  .row-nouveau{background:rgba(59,109,17,0.04);}
+  .row-doublon{background:rgba(133,79,11,0.06);opacity:0.75;}
+  .status-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:600;padding:2px 7px;border-radius:10px;white-space:nowrap;}
+  .s-nouveau{background:var(--green-bg);color:var(--green);}
+  .s-doublon{background:var(--amber-bg);color:var(--amber);}
+  .select-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;padding:8px 2px;}
+  .select-bar .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
+  .kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+  .kpi{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 14px;}
+  .kpi-label{font-size:9px;color:var(--text-3);text-transform:uppercase;margin-bottom:3px;}
+  .kpi-value{font-size:18px;font-weight:600;}
+  .list-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .list-head{padding:10px 14px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  .edit-btn,.del-btn,.ignore-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:0 3px;}
+  .edit-btn{color:var(--green);} .del-btn{color:var(--red);} .ignore-btn{color:var(--text-3);}
+  .modal-overlay{position:fixed;inset:0;background:rgba(61,43,31,0.35);z-index:200;display:flex;align-items:center;justify-content:center;}
+  .modal{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-md);width:440px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+  .modal-header{padding:12px 16px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .modal-close{background:none;border:none;font-size:18px;color:var(--text-3);cursor:pointer;}
+  .modal-body{padding:16px;} .modal-footer{padding:10px 16px;border-top:0.5px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+  .success-toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:white;padding:9px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;z-index:999;}
+  .hidden{display:none!important;}
+  .info-box{background:var(--blue-bg);border:0.5px solid rgba(24,95,165,0.15);border-radius:var(--radius-sm);padding:8px 12px;font-size:11px;color:var(--blue);margin-bottom:12px;}
+  #login-screen{max-width:340px;margin:80px auto;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:28px;}
+  #login-screen input{width:100%;box-sizing:border-box;margin-bottom:10px;padding:8px 10px;border:0.5px solid var(--border-mid);border-radius:var(--radius-sm);font-size:13px;}
+  #login-err{color:var(--red);font-size:12px;margin-bottom:10px;min-height:16px;}  .imp-tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .imp-tab-btn{padding:8px 16px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;}
+  .imp-tab-btn.active{background:var(--orange);color:white;border-color:var(--orange);}
+  .bulk-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;padding:8px 14px;background:rgba(201,107,42,0.06);border-bottom:0.5px solid var(--border);}
+  .sv-subtabs{display:flex;gap:0;border-bottom:0.5px solid var(--border);margin-bottom:12px;overflow-x:auto;}
+  .sv-sub{padding:7px 14px;font-size:11px;font-weight:500;color:var(--text-3);border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;white-space:nowrap;font-family:inherit;}
+  .sv-sub:hover{color:var(--text-2);} .sv-sub.active{color:var(--orange);border-bottom-color:var(--orange);}
+  .sv-badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:10px;background:var(--orange);color:#fff;margin-left:3px;font-weight:600;}
+  .sv-sub .sv-badge{margin-left:5px;} .imp-tab-btn.active .sv-badge{background:#fff;color:var(--orange);}
+  tr.sv-done{opacity:.45;}
+  /* --- Assistant d'import en 4 étapes --- */
+  .steps .step{padding:12px 16px;font-size:13px;}
+  .steps .step.done .step-num{background:var(--green);border-color:transparent;color:#fff;}
+  .map-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:14px;}
+  .map-title i{color:var(--orange);}
+  .mapping-grid6{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;}
+  .mapping-grid6 .f-select,.mapping-grid6 .f-input{width:100%;box-sizing:border-box;padding:9px 10px;font-size:13px;}
+  .auto-tag{font-size:11px;color:var(--green);min-height:14px;}
+  .raw-table{font-size:11px;}
+  .raw-table th{font-family:ui-monospace,Menlo,Consolas,monospace;}
+  .raw-table td{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap;}
+  .raw-table tbody tr{background:rgba(201,107,42,0.07);}
+  .raw-table td.raw-n,.raw-table th:first-child{color:var(--text-3);width:34px;}
+  .wiz-actions{display:flex;align-items:center;gap:10px;margin:4px 0 14px;}
+  .final-resume{font-size:13px;line-height:1.7;margin-bottom:14px;}
+  @media (max-width:1100px){.mapping-grid6{grid-template-columns:repeat(3,1fr);}}
+  @media (max-width:640px){.mapping-grid6{grid-template-columns:1fr 1fr;}.steps .step{font-size:11px;padding:10px 8px;}}
+</style>
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+
+<div id="login-screen">
+  <h1 style="font-size:16px;">Compta — {{asso.nom}}</h1>
+  <p style="font-size:12px;color:var(--text-3);margin-bottom:16px;">Connexion requise.</p>
+  <input type="email" id="login-email" placeholder="Email">
+  <input type="password" id="login-password" placeholder="Mot de passe">
+  <div id="login-err"></div>
+  <button class="btn btn-primary" style="width:100%;" onclick="seConnecter()">Se connecter</button>
+</div>
+
+<div id="app" class="hidden">
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-title">{{asso.nom}}</div>
+    <div class="sidebar-logo-sub">Comptabilité</div>
+  </div>
+
+  <div class="nav-section">Vue d'ensemble</div>
+  <a class="nav-item" href="index_compta.html"><i class="ti ti-layout-dashboard"></i>Tableau de bord</a>
+  <a class="nav-item" href="analyse.html"><i class="ti ti-chart-bar"></i>Analyse</a>
+  <a class="nav-item" href="journal.html"><i class="ti ti-notebook"></i>Journal</a>
+
+  <div class="nav-section">Opérations</div>
+  <a class="nav-item" href="caisse.html"><i class="ti ti-cash"></i>Caisse</a>
+  <a class="nav-item" href="caisse_physique.html"><i class="ti ti-coin"></i>Caisse physique</a>
+  <a class="nav-item" href="banque.html"><i class="ti ti-building-bank"></i>Banque</a>
+  <a class="nav-item" href="cheques.html"><i class="ti ti-file-dollar"></i>Chèques</a>
+  <a class="nav-item" href="remise_cheques.html"><i class="ti ti-file-invoice"></i>Remises de chèques</a>
+  <a class="nav-item active" href="import_rapprochement.html"><i class="ti ti-arrows-exchange"></i>Import / rapprochement</a>
+  <a class="nav-item" href="ecritures_diverses.html"><i class="ti ti-adjustments-horizontal"></i>Écritures diverses</a>
+
+  <div class="nav-section">Suivi</div>
+  <a class="nav-item" href="factures.html"><i class="ti ti-receipt"></i>Factures</a>
+  <a class="nav-item" href="notes.html"><i class="ti ti-note"></i>Notes partagées</a>
+
+  <div class="nav-section">Administration</div>
+  <a class="nav-item" href="configuration.html"><i class="ti ti-settings"></i>Configuration</a>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar" id="sidebar-avatar">?</div>
+      <div class="sidebar-username" id="sidebar-username"></div>
+      <span class="sidebar-logout" onclick="seDeconnecter()">Déconnexion</span>
+    </div>
+  </div>
+</aside>
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title"><i class="ti ti-upload" style="color:var(--orange)"></i> Import relevé bancaire</div>
+    <div class="topbar-right"><span style="font-size:11px;color:var(--text-3);">CSV, XLS, XLSX</span></div>
+  </div>
+  <div class="page-content">
+
+    <div class="info-box"><i class="ti ti-info-circle"></i> Cette page importe un relevé bancaire (CSV ou Excel) puis vous laisse rapprocher chaque ligne avec un type de mouvement avant de l'envoyer en Caisse ou en Banque. Rien n'est créé tant que vous n'avez pas transféré la ligne.</div>
+
+    <div class="imp-tabs">
+      <div class="imp-tab-btn" id="tab-btn-import" onclick="switchImportTab('import')"><i class="ti ti-upload"></i> Import banque</div>
+      <div class="imp-tab-btn" id="tab-btn-suivi" onclick="switchImportTab('suivi')"><i class="ti ti-database-import"></i> Import Suivi <span class="sv-badge" id="sv-badge-total" style="display:none;"></span></div>
+      <div class="imp-tab-btn active" id="tab-btn-rappr" onclick="switchImportTab('rapprochement')"><i class="ti ti-arrows-exchange"></i> Rapprochement</div>
+    </div>
+
+    <div id="tab-import" class="hidden">
+    <!-- ÉTAPE IMPORT -->
+    <div class="steps">
+      <div class="step active" id="step-1"><span class="step-num">1</span> Charger le fichier</div>
+      <div class="step" id="step-2"><span class="step-num">2</span> Mapper les colonnes</div>
+      <div class="step" id="step-3"><span class="step-num">3</span> Vérifier &amp; sélectionner</div>
+      <div class="step" id="step-4"><span class="step-num">4</span> Importer</div>
+    </div>
+    <div id="import-err" class="hidden" style="color:var(--red);font-size:12px;padding:0 0 10px;"></div>
+
+    <div class="mapping-card" id="card-upload">
+      <div class="form-row-2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div class="form-group"><label class="form-label req">Destination</label>
+          <select id="imp-destination" class="f-select"></select>
+        </div>
+        <div class="form-group"><label class="form-label req">Période</label><select id="imp-periode" class="f-select"></select></div>
+      </div>
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+        <i class="ti ti-upload" style="font-size:24px;color:var(--text-3);"></i>
+        <div style="margin-top:8px;font-size:13px;">Cliquez ou glissez un fichier CSV ou Excel (.xlsx) ici</div>
+        <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none;" onchange="onFileSelected(this.files[0])">
+      </div>
+    </div>
+
+    <!-- ÉTAPE 2 : mapper les colonnes -->
+    <div id="card-mapping" class="hidden">
+      <div class="mapping-card">
+        <div class="map-title"><i class="ti ti-columns"></i> Correspondance des colonnes</div>
+        <div class="mapping-grid6">
+          <div class="form-group"><label class="form-label req">Date</label><select id="map-date" class="f-select" onchange="onMapChange('auto-date')"></select><div class="auto-tag" id="auto-date"></div></div>
+          <div class="form-group"><label class="form-label req">Libellé</label><select id="map-libelle" class="f-select" onchange="onMapChange('auto-libelle')"></select><div class="auto-tag" id="auto-libelle"></div></div>
+          <div class="form-group"><label class="form-label req">Débit (ou montant)</label><select id="map-debit" class="f-select" onchange="onMapChange('auto-debit')"></select><div class="auto-tag" id="auto-debit"></div></div>
+          <div class="form-group"><label class="form-label">Crédit (si séparé)</label><select id="map-credit" class="f-select" onchange="onMapChange('auto-credit')"></select><div class="auto-tag" id="auto-credit"></div></div>
+          <div class="form-group"><label class="form-label">Solde</label><select id="map-solde" class="f-select" onchange="onMapChange('auto-solde')"></select><div class="auto-tag" id="auto-solde"></div></div>
+          <div class="form-group"><label class="form-label">Lignes à ignorer en début</label><input type="number" id="map-skip" class="f-input" value="0" min="0" max="60" onchange="onSkipChange()"></div>
+        </div>
+      </div>
+      <div class="mapping-card">
+        <div class="map-title" style="font-size:12.5px;margin-bottom:8px;">Aperçu du fichier (10 premières lignes)</div>
+        <div class="preview-table" id="raw-preview" style="margin-top:0;"></div>
+      </div>
+      <div class="wiz-actions">
+        <button class="btn btn-secondary" onclick="annulerImport()"><i class="ti ti-arrow-left"></i> Retour</button>
+        <button class="btn btn-primary" onclick="genererApercu()"><i class="ti ti-arrow-right"></i> Continuer</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 3 : vérifier & sélectionner -->
+    <div id="card-verif" class="hidden">
+      <div class="mapping-card">
+      <div id="select-bar" class="select-bar hidden">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="select-all" onchange="toggleAllLines(this.checked)" style="width:14px;height:14px;accent-color:var(--orange);">
+          Tout sélectionner
+        </label>
+        <span style="color:var(--text-3);">|</span>
+        <span id="sel-count" style="font-weight:600;">0 sélectionnée(s)</span>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="selectNouveauxSeulement()"><i class="ti ti-sparkles"></i> Nouveaux seulement</button>
+        <span style="margin-left:auto;display:flex;gap:12px;">
+          <span><span class="dot" style="background:var(--green);"></span><span id="cnt-nouveau">0</span> nouveaux</span>
+          <span><span class="dot" style="background:var(--amber);"></span><span id="cnt-doublon">0</span> doublons</span>
+        </span>
+      </div>
+      <div class="preview-table" id="preview-wrap" style="max-height:420px;"></div>
+      </div>
+      <div class="wiz-actions">
+        <button class="btn btn-secondary" onclick="showStep(2)"><i class="ti ti-arrow-left"></i> Retour</button>
+        <button class="btn btn-primary" id="btn-continue-verif" onclick="allerEtapeImport()"><i class="ti ti-arrow-right"></i> Continuer</button>
+      </div>
+    </div>
+
+    <!-- ÉTAPE 4 : importer -->
+    <div id="card-final" class="hidden">
+      <div class="mapping-card">
+        <div class="map-title"><i class="ti ti-checklist"></i> Récapitulatif</div>
+        <div class="final-resume" id="final-resume"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div class="form-group" style="flex:1;min-width:200px;">
+          <label class="form-label">Type de mouvement (optionnel)</label>
+          <select class="f-select" id="imp-type-mouvement" style="width:100%;" onchange="onImpTypeChange()">
+            <option value="">— Importer en attente (à rapprocher plus tard) —</option>
+          </select>
+        </div>
+        </div>
+      </div>
+      <div class="wiz-actions">
+        <button class="btn btn-secondary" onclick="showStep(3)"><i class="ti ti-arrow-left"></i> Retour</button>
+        <button class="btn btn-primary" id="btn-confirm-import" onclick="confirmerImport()"><i class="ti ti-check"></i> Importer ces lignes</button>
+      </div>
+    </div>
+    <!-- fin onglet Import -->
+    </div>
+
+    <div id="tab-suivi" class="hidden">
+      <div class="info-box"><i class="ti ti-info-circle"></i> Enregistrements saisis dans Suivi, par catégorie. Une ligne = un règlement : <b>espèces → Caisse</b>, <b>virement / CB → Banque</b>. Les chèques passent par « Remises de chèques ». Les lignes sélectionnées vont dans l'onglet Rapprochement ; au transfert, le lien Suivi est créé automatiquement.</div>
+      <div class="kpi-row" id="sv-kpis"></div>
+      <div class="sv-subtabs" id="sv-subtabs"></div>
+      <div class="list-card">
+        <div class="list-head">
+          <input class="f-input" id="sv-search" placeholder="Rechercher…" oninput="renderSuivi()" style="width:160px;">
+          <select class="f-select" id="sv-mode" onchange="renderSuivi()"><option value="">Tous règlements</option><option value="Espèces">Espèces</option><option value="Virement">Virement</option><option value="CB">CB</option></select>
+          <label style="font-size:11px;color:var(--text-2);display:flex;gap:5px;align-items:center;"><input type="checkbox" id="sv-hide" checked onchange="renderSuivi()" style="accent-color:var(--orange);"> Masquer déjà traités</label>
+          <span style="margin-left:auto;font-size:11px;color:var(--text-3);">Période des lignes importées :</span>
+          <select class="f-select" id="sv-periode"></select>
+        </div>
+        <div class="bulk-bar" id="sv-bar">
+          <span id="sv-count" style="font-weight:600;">0 sélectionnée(s)</span>
+          <button class="btn btn-secondary btn-sm" onclick="svToutSelectionner()">Tout sélectionner</button>
+          <button class="btn btn-secondary btn-sm" onclick="svSel.clear();renderSuivi()">Désélectionner</button>
+          <button class="btn btn-primary btn-sm" id="sv-btn-import" onclick="svOuvrirImport()" disabled><i class="ti ti-download"></i> Envoyer au rapprochement</button>
+        </div>
+        <div style="overflow-x:auto;max-height:500px;overflow-y:auto;" id="sv-wrap"><div style="padding:24px;text-align:center;color:var(--text-3);">Chargement…</div></div>
+      </div>
+    </div>
+    <!-- fin onglet Import Suivi -->
+
+    <div id="tab-rapprochement">
+    <!-- LISTE EN ATTENTE -->
+    <div class="kpi-row" id="kpi-row"></div>
+    <div class="list-card">
+      <div class="list-head">
+        <span style="font-size:13px;font-weight:600;">Lignes en attente de rapprochement</span>
+        <div style="display:flex;gap:6px;">
+          <select class="f-select" id="fl-periode" onchange="loadData()"></select>
+          <select class="f-select" id="fl-destination" onchange="renderTable()"></select>
+          <select class="f-select" id="fl-statut" onchange="renderTable()">
+            <option value="en_attente">En attente</option><option value="rapprochee">Rapprochées</option><option value="ignoree">Ignorées</option><option value="">Toutes</option>
+          </select>
+        </div>
+      </div>
+      <div class="bulk-bar hidden" id="bulk-bar">
+        <span id="bulk-count" style="font-weight:600;">0 sélectionnée(s)</span>
+        <select class="f-select" id="bulk-type" style="min-width:180px;"></select>
+        <button class="btn btn-primary btn-sm" onclick="assignerEnMasse(this)"><i class="ti ti-check"></i> Affecter à ce type</button>
+        <button class="btn btn-secondary btn-sm" onclick="viderSelectionRappr()">Annuler la sélection</button>
+        <span id="bulk-err" class="hidden" style="color:var(--red);"></span>
+      </div>
+      <div style="overflow-x:auto;max-height:500px;overflow-y:auto;" id="table-wrap"><div style="padding:24px;text-align:center;color:var(--text-3);">Chargement…</div></div>
+    </div>
+    </div>
+    <!-- fin onglet Rapprochement -->
+  </div>
+</div>
+</div>
+
+<!-- MODAL TRANSFERT -->
+<div class="modal-overlay hidden" id="modal-transfer">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Rapprocher et transférer</span><button class="modal-close" onclick="closeTransfer()">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;" id="transfer-detail"></div>
+      <div class="form-group" style="margin-bottom:10px;"><label class="form-label req">Type de mouvement</label><select id="tr-type" class="f-select" style="width:100%;" onchange="onTrTypeChange()"></select></div>
+      <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Description</label><select id="tr-desc" class="f-select" style="width:100%;"><option value="">—</option></select></div>
+      <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Fournisseur</label><select id="tr-fourn" class="f-select" style="width:100%;"><option value="">—</option></select></div>
+      <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Nom du chat</label><input type="text" id="tr-chat" class="f-input" style="width:100%;"></div>
+      <div class="form-group"><label class="form-label">N° reçu fiscal / don</label><input type="text" id="tr-recu" class="f-input" style="width:100%;"></div>
+      <div id="tr-err" class="hidden" style="color:var(--red);font-size:11px;padding:6px 0;"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary btn-sm" onclick="closeTransfer()">Annuler</button><button class="btn btn-primary btn-sm" id="btn-confirm-transfer" onclick="confirmTransfer()"><i class="ti ti-arrow-right"></i> Transférer</button></div>
+  </div>
+</div>
+
+<!-- MODAL IMPORT SUIVI -->
+<div class="modal-overlay hidden" id="modal-sv">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Envoyer au rapprochement</span><button class="modal-close" onclick="document.getElementById('modal-sv').classList.add('hidden')">×</button></div>
+    <div class="modal-body">
+      <div id="sv-resume" style="font-size:12px;color:var(--text-2);margin-bottom:12px;"></div>
+      <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Type de mouvement (modifiable ensuite)</label><select id="sv-type" class="f-select" style="width:100%;" onchange="svTypeChange()"></select></div>
+      <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Description</label><select id="sv-desc" class="f-select" style="width:100%;"><option value="">—</option></select></div>
+      <div class="form-group"><label class="form-label">Caisse pour les espèces</label><select id="sv-caisse" class="f-select" style="width:100%;"></select></div>
+      <div id="sv-err" class="hidden" style="color:var(--red);font-size:11px;padding:6px 0;"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary btn-sm" onclick="document.getElementById('modal-sv').classList.add('hidden')">Annuler</button><button class="btn btn-primary btn-sm" id="sv-confirm" onclick="svConfirmer()"><i class="ti ti-check"></i> Envoyer</button></div>
+  </div>
+</div>
+
+<!-- MODAL IGNORER -->
+<div class="modal-overlay hidden" id="modal-ignore">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Ignorer la ligne</span><button class="modal-close" onclick="closeIgnore()">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Motif (optionnel)</label><input type="text" id="ignore-motif" class="f-input" style="width:100%;" placeholder="Ex: doublon, virement interne..."></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary btn-sm" onclick="closeIgnore()">Annuler</button><button class="btn btn-danger btn-sm" onclick="confirmIgnore()">Ignorer</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="comptes.js"></script>
+<script src="compta-commun.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const supabaseClient = creerClientSupabase();
+
+let roleActuel = null, typesEtDescriptions = [];
+let csvRows = [], csvHeaders = [], parsedPreview = [];
+let allImports = [], transferTarget = null, ignoreTarget = null;
+let selectionRappr = new Set();
+
+async function seConnecter() {
+  document.getElementById('login-err').textContent = '';
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) { document.getElementById('login-err').textContent = 'Connexion refusée : ' + error.message; return; }
+  await demarrerApp(data.user);
+}
+async function seDeconnecter() { await supabaseClient.auth.signOut(); location.reload(); }
+async function demarrerApp(user) {
+  await COMPTES.charger(supabaseClient);
+  await COMPTES.remplirSelect('imp-destination');
+  await COMPTES.remplirSelect('fl-destination', null, 'Toutes destinations');
+  await COMPTES.remplirSelect('sv-caisse', 'caisse');
+  const { data: profil, error } = await supabaseClient.from('profils_compta').select('role, email').eq('user_id', user.id).maybeSingle();
+  if (error || !profil) { document.getElementById('login-err').textContent = "Ce compte n'est pas autorisé sur la Compta."; await supabaseClient.auth.signOut(); return; }
+  roleActuel = profil.role;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('sidebar-username').textContent = profil.email + (roleActuel==='lecteur' ? ' (lecture seule)' : '');
+  document.getElementById('sidebar-avatar').textContent = (profil.email||'?').charAt(0).toUpperCase();
+  if (roleActuel === 'lecteur') document.getElementById('card-upload').style.display = 'none';
+  await chargerPeriodes(); await chargerTypesEtDescriptions(); await chargerFournisseurs();
+  await loadData();
+}
+(async function initSession() { try { const { data } = await supabaseClient.auth.getSession(); if (data.session) await demarrerApp(data.session.user); } catch (e) { afficherErreurChargement(e); } })();
+
+// Période par défaut : définie une seule fois dans Configuration
+async function chargerPeriodes() { await initPeriodes(supabaseClient, ['imp-periode','fl-periode','sv-periode']); }
+async function chargerTypesEtDescriptions() {
+  const { data: types } = await supabaseClient.from('types_mouvement').select('id, valeur, ordre').order('ordre');
+  const { data: descs } = await supabaseClient.from('descriptions_mouvement').select('id, type_mouvement_id, valeur, ordre').order('ordre');
+  typesEtDescriptions = (types||[]).map(t => ({...t, descriptions:(descs||[]).filter(d=>d.type_mouvement_id===t.id)}));
+  document.getElementById('tr-type').innerHTML = '<option value="">— Choisir —</option>' + typesEtDescriptions.map(t=>`<option>${escH(t.valeur)}</option>`).join('');
+  document.getElementById('bulk-type').innerHTML = '<option value="">— Choisir un type —</option>' + typesEtDescriptions.map(t=>`<option>${escH(t.valeur)}</option>`).join('');
+  document.getElementById('imp-type-mouvement').innerHTML = '<option value="">— Importer en attente (à rapprocher plus tard) —</option>' + typesEtDescriptions.map(t=>`<option>${escH(t.valeur)}</option>`).join('');
+}
+function onImpTypeChange() {
+  const type = document.getElementById('imp-type-mouvement').value;
+  const btn = document.getElementById('btn-confirm-import');
+  btn.innerHTML = type ? '<i class="ti ti-check"></i> Importer et affecter à ce type' : '<i class="ti ti-check"></i> Importer ces lignes';
+}
+function switchImportTab(tab) {
+  [['import','import'],['suivi','suivi'],['rapprochement','rappr']].forEach(([t,b]) => {
+    document.getElementById('tab-' + t).classList.toggle('hidden', tab !== t);
+    document.getElementById('tab-btn-' + b).classList.toggle('active', tab === t);
+  });
+  if (tab === 'suivi' && !svCharge) chargerSuivi();
+}
+function onTrTypeChange() {
+  const t = typesEtDescriptions.find(x => x.valeur === document.getElementById('tr-type').value);
+  document.getElementById('tr-desc').innerHTML = '<option value="">—</option>' + (t?.descriptions||[]).map(d=>`<option>${escH(d.valeur)}</option>`).join('');
+}
+async function chargerFournisseurs() {
+  const { data } = await supabaseClient.from('fournisseurs').select('nom').eq('actif', true).order('nom');
+  document.getElementById('tr-fourn').innerHTML = '<option value="">—</option>' + (data||[]).map(f=>`<option>${escH(f.nom)}</option>`).join('');
+}
+
+// ============================================================
+// ÉTAPE 1-2 : UPLOAD + MAPPING
+// ============================================================
+// Un fichier .xlsx/.xls (export Excel de la banque) ne peut pas être
+// lu comme un CSV : c'est une archive zip (xlsx) ou un format binaire
+// (xls) — Papa.parse produirait alors des lignes de charabia illisible
+// ("PK...[Content_Types].xml..."). On détecte le vrai format du
+// fichier (pas seulement son extension, car un export Excel est parfois
+// renommé en .csv) et on route vers le bon lecteur.
+function onFileSelected(file) {
+  if (!file) return;
+  const nom = (file.name || '').toLowerCase();
+  if (nom.endsWith('.xlsx') || nom.endsWith('.xls')) { lireFichierExcel(file); return; }
+
+  // Vérifie les 2 premiers octets : un fichier xlsx (zip) commence
+  // toujours par la signature "PK", même s'il a été renommé en .csv.
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const octets = new Uint8Array(e.target.result);
+    if (octets[0] === 0x50 && octets[1] === 0x4B) lireFichierExcel(file);
+    else lireFichierCsv(file);
+  };
+  reader.onerror = () => lireFichierCsv(file);
+  reader.readAsArrayBuffer(file.slice(0, 4));
+}
+
+function lireFichierCsv(file) {
+  Papa.parse(file, {
+    complete: (res) => { csvRows = res.data; apresLectureFichier(); },
+    error: (err) => showImportErr('Erreur de lecture du fichier : ' + err.message)
+  });
+}
+
+function lireFichierExcel(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const classeur = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const feuille = classeur.Sheets[classeur.SheetNames[0]];
+      csvRows = XLSX.utils.sheet_to_json(feuille, { header: 1, raw: false, dateNF: 'dd/mm/yyyy', defval: '' });
+      apresLectureFichier();
+    } catch (err) {
+      showImportErr("Impossible de lire ce fichier Excel : " + err.message);
+    }
+  };
+  reader.onerror = () => showImportErr('Erreur de lecture du fichier.');
+  reader.readAsArrayBuffer(file);
+}
+
+// ----- Assistant en 4 étapes -----
+function showStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('step-' + i);
+    el.classList.toggle('done', i < n);
+    el.classList.toggle('active', i === n);
+  }
+  document.getElementById('card-upload').classList.toggle('hidden', n !== 1);
+  document.getElementById('card-mapping').classList.toggle('hidden', n !== 2);
+  document.getElementById('card-verif').classList.toggle('hidden', n !== 3);
+  document.getElementById('card-final').classList.toggle('hidden', n !== 4);
+  document.getElementById('import-err').classList.add('hidden');
+}
+
+// Un export bancaire commence souvent par des lignes d'en-tête (titre,
+// IBAN, période…) avant la vraie ligne de titres de colonnes. On repère
+// la 1re ligne qui contient à la fois une colonne « date » et « libellé ».
+function detecterLigneEntete() {
+  const max = Math.min(csvRows.length, 40);
+  for (let r = 0; r < max; r++) {
+    const cells = (csvRows[r] || []).map(c => String(c == null ? '' : c).trim());
+    if (cells.some(c => c.length < 40 && /date/i.test(c)) && cells.some(c => c.length < 40 && /libell|label|intitul/i.test(c))) return r;
+  }
+  return 0;
+}
+
+function remplirMapping(skip) {
+  const row = csvRows[skip] || [];
+  let nb = row.length;
+  for (let r = skip; r < Math.min(csvRows.length, skip + 30); r++) nb = Math.max(nb, (csvRows[r] || []).length);
+  csvHeaders = [];
+  for (let i = 0; i < nb; i++) csvHeaders.push(String(row[i] == null ? '' : row[i]).trim() || ('Colonne ' + (i + 1)));
+  const opts = csvHeaders.map((h, i) => `<option value="${i}">${escH(h)}</option>`).join('');
+  document.getElementById('map-date').innerHTML = opts;
+  document.getElementById('map-libelle').innerHTML = opts;
+  document.getElementById('map-debit').innerHTML = opts;
+  document.getElementById('map-credit').innerHTML = '<option value="">— Un seul montant signé —</option>' + opts;
+  document.getElementById('map-solde').innerHTML = '<option value="">— Ignorer —</option>' + opts;
+
+  const trouver = (rx) => csvHeaders.findIndex(h => rx.test(h));
+  const iDate = trouver(/date/i);
+  const iLib = trouver(/libell|label|intitul|d[ée]tail|description/i);
+  let iDeb = trouver(/d[ée]bit/i);
+  const iCred = trouver(/cr[ée]dit/i);
+  if (iDeb < 0) iDeb = trouver(/montant|amount/i);
+  const iSolde = trouver(/solde|balance/i);
+  const poser = (id, idx, autoId) => {
+    if (idx >= 0) document.getElementById(id).value = String(idx);
+    document.getElementById(autoId).innerHTML = idx >= 0 ? '<i class="ti ti-check"></i> Auto' : '';
+  };
+  poser('map-date', iDate, 'auto-date');
+  poser('map-libelle', iLib, 'auto-libelle');
+  poser('map-debit', iDeb, 'auto-debit');
+  poser('map-credit', iCred, 'auto-credit');
+  poser('map-solde', iSolde, 'auto-solde');
+}
+
+function apresLectureFichier() {
+  const skip = detecterLigneEntete();
+  document.getElementById('map-skip').value = skip;
+  remplirMapping(skip);
+  renderRawPreview();
+  showStep(2);
+}
+
+function onSkipChange() {
+  const skip = Math.max(0, parseInt(document.getElementById('map-skip').value) || 0);
+  remplirMapping(skip);
+  renderRawPreview();
+}
+
+function onMapChange(autoId) {
+  document.getElementById(autoId).innerHTML = '';
+  renderRawPreview();
+}
+
+// Aperçu brut : les 10 premières lignes à partir de « Lignes à ignorer »,
+// limité aux colonnes choisies.
+function renderRawPreview() {
+  const skip = Math.max(0, parseInt(document.getElementById('map-skip').value) || 0);
+  const col = (id) => { const v = document.getElementById(id).value; return v === '' ? null : parseInt(v); };
+  const cols = ['map-date', 'map-libelle', 'map-debit', 'map-credit', 'map-solde'].map(col).filter(i => i !== null && !isNaN(i));
+  const th = cols.map(i => `<th>${escH(csvHeaders[i] || '')}</th>`).join('');
+  const trs = csvRows.slice(skip, skip + 10).map((row, k) =>
+    `<tr><td class="raw-n">${skip + k + 1}</td>${cols.map(i => `<td>${escH(String((row || [])[i] == null ? '' : row[i]))}</td>`).join('')}</tr>`
+  ).join('');
+  document.getElementById('raw-preview').innerHTML = `<table class="raw-table"><thead><tr><th>#</th>${th}</tr></thead><tbody>${trs}</tbody></table>`;
+}
+['dragover','dragleave','drop'].forEach(evt => {
+  document.getElementById('dropzone').addEventListener(evt, (e) => {
+    e.preventDefault();
+    document.getElementById('dropzone').classList.toggle('drag-over', evt === 'dragover');
+    if (evt === 'drop' && e.dataTransfer.files[0]) onFileSelected(e.dataTransfer.files[0]);
+  });
+});
+
+function parseDateCsv(s) {
+  s = String(s||'').trim();
+  const p = s.split('/');
+  if (p.length === 3) { let y = p[2]; if (y.length===2) y = (parseInt(y,10)<50?'20':'19')+y; return y+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'); }
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  return null;
+}
+function parseNombreCsv(s) {
+  if (s === null || s === undefined || s === '') return 0;
+  return parseFloat(String(s).replace(/\s/g,'').replace(',','.')) || 0;
+}
+
+// Récupère les mouvements déjà enregistrés dans la destination choisie
+// (Banque ou Caisse), pour repérer les lignes du relevé qui y figurent
+// déjà (même date + même montant signé, à 1 centime près).
+async function chargerLignesExistantes(destination) {
+  if (!COMPTES.estCaisse(destination)) {
+    const { data, error } = await supabaseClient.from('banque_mouvements').select('date_mouvement, debit, credit').eq('compte', destination);
+    if (error) throw error;
+    return (data || []).map(r => ({ date: r.date_mouvement, montant: (parseFloat(r.credit) || 0) - (parseFloat(r.debit) || 0) }));
+  }
+  const { data, error } = await supabaseClient.from('caisse_mouvements').select('date_mouvement, debit, credit').eq('caisse', destination);
+  if (error) throw error;
+  return (data || []).map(r => ({ date: r.date_mouvement, montant: (parseFloat(r.credit) || 0) - (parseFloat(r.debit) || 0) }));
+}
+
+// Idem, mais pour les lignes déjà importées ici (en attente, déjà
+// rapprochées ou ignorées) — cas fréquent : le même fichier bancaire
+// réimporté une deuxième fois avant d'avoir traité les lignes.
+async function chargerLignesDejaImportees(destination) {
+  const { data, error } = await supabaseClient.from('import_rapprochement').select('date_mouvement, montant').eq('destination', destination);
+  if (error) throw error;
+  return (data || []).map(r => ({ date: r.date_mouvement, montant: parseFloat(r.montant) || 0 }));
+}
+
+function estDoublon(ligne, existantes) {
+  return existantes.some(e => e.date === ligne.date && Math.abs(e.montant - ligne.montant) < 0.01);
+}
+
+async function genererApercu() {
+  document.getElementById('import-err').classList.add('hidden');
+  const skip = parseInt(document.getElementById('map-skip').value) || 0;
+  const iDate = parseInt(document.getElementById('map-date').value);
+  const iLib  = parseInt(document.getElementById('map-libelle').value);
+  const iDeb  = parseInt(document.getElementById('map-debit').value);
+  const iCred = document.getElementById('map-credit').value === '' ? null : parseInt(document.getElementById('map-credit').value);
+  const iSolde = document.getElementById('map-solde').value === '' ? null : parseInt(document.getElementById('map-solde').value);
+  const destination = document.getElementById('imp-destination').value;
+
+  const lignesBrutes = [];
+  for (let r = skip; r < csvRows.length; r++) {
+    const row = csvRows[r];
+    if (!row || row.every(c => !c)) continue;
+    const date = parseDateCsv(row[iDate]);
+    if (!date) continue;
+    let montant;
+    if (iCred !== null) {
+      const d = parseNombreCsv(row[iDeb]), c = parseNombreCsv(row[iCred]);
+      montant = c - d;
+    } else {
+      montant = parseNombreCsv(row[iDeb]);
+    }
+    lignesBrutes.push({ date, libelle: row[iLib] || '', montant, solde: iSolde !== null ? String(row[iSolde] == null ? '' : row[iSolde]) : '' });
+  }
+
+  if (!lignesBrutes.length) { showImportErr('Aucune ligne valide détectée — vérifiez le mapping des colonnes.'); return; }
+
+  let existantes;
+  try {
+    const [dejaEnregistrees, dejaImportees] = await Promise.all([
+      chargerLignesExistantes(destination),
+      chargerLignesDejaImportees(destination)
+    ]);
+    existantes = dejaEnregistrees.concat(dejaImportees);
+  } catch (e) {
+    showImportErr('Erreur lors de la vérification des doublons : ' + (e.message || '?'));
+    return;
+  }
+
+  parsedPreview = lignesBrutes.map(l => {
+    const doublon = estDoublon(l, existantes);
+    return { ...l, statut: doublon ? 'doublon' : 'nouveau', selected: !doublon };
+  });
+
+  renderApercu();
+  showStep(3);
+}
+
+function renderApercu() {
+  const aSolde = parsedPreview.some(r => r.solde);
+  const trs = parsedPreview.map((r, i) => {
+    const cls = r.statut === 'nouveau' ? 'row-nouveau' : 'row-doublon';
+    const badge = r.statut === 'nouveau'
+      ? '<span class="status-badge s-nouveau"><i class="ti ti-sparkles"></i> Nouveau</span>'
+      : '<span class="status-badge s-doublon"><i class="ti ti-alert-triangle"></i> Doublon ?</span>';
+    return `<tr class="${cls}">
+      <td><input type="checkbox" class="ligne-chk" data-i="${i}" ${r.selected ? 'checked' : ''} onchange="onSelectLigne(${i}, this.checked)" style="width:14px;height:14px;accent-color:var(--orange);"></td>
+      <td>${badge}</td>
+      <td>${r.date}</td><td>${escH(r.libelle)}</td>
+      <td class="r ${r.montant>=0?'amount-c':'amount-d'}">${fmt(r.montant)}</td>${aSolde ? `<td class="r">${escH(r.solde || '')}</td>` : ''}
+    </tr>`;
+  }).join('');
+  document.getElementById('preview-wrap').innerHTML = `<table><thead><tr><th style="width:26px;"></th><th>Statut</th><th>Date</th><th>Libellé</th><th class="r">Montant</th>${aSolde ? '<th class="r">Solde</th>' : ''}</tr></thead><tbody>${trs}</tbody></table>`;
+  document.getElementById('select-bar').classList.remove('hidden');
+  document.getElementById('cnt-nouveau').textContent = parsedPreview.filter(r => r.statut === 'nouveau').length;
+  document.getElementById('cnt-doublon').textContent = parsedPreview.filter(r => r.statut === 'doublon').length;
+  updateSelCount();
+}
+
+function onSelectLigne(i, checked) { parsedPreview[i].selected = checked; updateSelCount(); }
+
+function toggleAllLines(checked) {
+  parsedPreview.forEach(r => r.selected = checked);
+  document.querySelectorAll('.ligne-chk').forEach(c => c.checked = checked);
+  updateSelCount();
+}
+
+function selectNouveauxSeulement() {
+  parsedPreview.forEach(r => r.selected = r.statut === 'nouveau');
+  document.querySelectorAll('.ligne-chk').forEach((c, i) => c.checked = parsedPreview[i].selected);
+  document.getElementById('select-all').checked = false;
+  updateSelCount();
+}
+
+function updateSelCount() {
+  const n = parsedPreview.filter(r => r.selected).length;
+  document.getElementById('sel-count').textContent = n + ' sélectionnée(s)';
+  document.getElementById('select-all').checked = n === parsedPreview.length;
+  const btn = document.getElementById('btn-confirm-import');
+  if (btn) btn.disabled = n === 0;
+  const suite = document.getElementById('btn-continue-verif');
+  if (suite) suite.disabled = n === 0;
+}
+
+function allerEtapeImport() {
+  const sel = parsedPreview.filter(r => r.selected);
+  if (!sel.length) { showImportErr('Sélectionnez au moins une ligne à importer.'); return; }
+  const entrees = sel.filter(r => r.montant > 0).reduce((t, r) => t + r.montant, 0);
+  const sorties = sel.filter(r => r.montant < 0).reduce((t, r) => t + r.montant, 0);
+  const dest = document.getElementById('imp-destination');
+  const per = document.getElementById('imp-periode');
+  document.getElementById('final-resume').innerHTML =
+    `<b>${sel.length}</b> ligne(s) à importer vers <b>${escH(dest.options[dest.selectedIndex] ? dest.options[dest.selectedIndex].text : '')}</b>` +
+    ` · période <b>${escH(per.options[per.selectedIndex] ? per.options[per.selectedIndex].text : '')}</b><br>` +
+    `Entrées : <span class="amount-c">${fmt(entrees)}</span> · Sorties : <span class="amount-d">${fmt(sorties)}</span>`;
+  showStep(4);
+}
+
+async function confirmerImport() {
+  const selection = parsedPreview.filter(r => r.selected);
+  if (!selection.length) { showImportErr('Sélectionnez au moins une ligne à importer.'); return; }
+  const typeChoisi = document.getElementById('imp-type-mouvement').value;
+  const btn = document.getElementById('btn-confirm-import'); btn.disabled = true;
+  try {
+    const lignes = selection.map(r => ({ date: r.date, libelle: r.libelle, montant: r.montant, periode: document.getElementById('imp-periode').value }));
+    const rpcName = typeChoisi ? 'importer_et_transferer_lignes' : 'importer_lignes_rapprochement';
+    const rpcParams = { p_destination: document.getElementById('imp-destination').value, p_lignes: lignes };
+    if (typeChoisi) rpcParams.p_type_mouvement = typeChoisi;
+    const { data, error } = await supabaseClient.rpc(rpcName, rpcParams);
+    if (error) throw error;
+    showToast(data + (typeChoisi ? ' ligne(s) importée(s) et affectée(s) !' : ' ligne(s) importée(s) !'));
+    annulerImport();
+    await loadData();
+  } catch(e) { showImportErr('Erreur : ' + (e.message||'?')); }
+  finally { btn.disabled = false; }
+}
+
+function annulerImport() {
+  csvRows = []; parsedPreview = [];
+  document.getElementById('file-input').value = '';
+  document.getElementById('select-bar').classList.add('hidden');
+  document.getElementById('imp-type-mouvement').value = '';
+  onImpTypeChange();
+  showStep(1);
+}
+function showImportErr(m) { const e = document.getElementById('import-err'); e.textContent = m; e.classList.remove('hidden'); }
+
+// ============================================================
+// LISTE / KPI
+// ============================================================
+async function loadData() {
+  const per = document.getElementById('fl-periode').value;
+  const { data, error } = await supabaseClient.from('import_rapprochement').select('*').eq('periode', per).order('date_mouvement', { ascending: false });
+  if (error) { showToast('Erreur : ' + error.message); return; }
+  allImports = data || [];
+  renderKPIs(); renderTable();
+}
+function renderKPIs() {
+  const att = allImports.filter(r => r.statut === 'en_attente');
+  const rap = allImports.filter(r => r.statut === 'rapprochee');
+  const ign = allImports.filter(r => r.statut === 'ignoree');
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi"><div class="kpi-label">En attente</div><div class="kpi-value" style="color:var(--amber)">${att.length}</div><div style="font-size:10px;color:var(--text-3);">${fmt(att.reduce((s,r)=>s+parseFloat(r.montant||0),0))}</div></div>
+    <div class="kpi"><div class="kpi-label">Rapprochées</div><div class="kpi-value" style="color:var(--green)">${rap.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Ignorées</div><div class="kpi-value" style="color:var(--text-3)">${ign.length}</div></div>`;
+}
+function renderTable() {
+  const destF = document.getElementById('fl-destination').value;
+  const statF = document.getElementById('fl-statut').value;
+  let rows = allImports;
+  if (destF) rows = rows.filter(r => r.destination === destF);
+  if (statF) rows = rows.filter(r => r.statut === statF);
+
+  // On ne garde dans la sélection que des lignes encore visibles et
+  // encore en attente (une ligne rapprochée/ignorée ou filtrée hors vue
+  // ne doit pas rester sélectionnée pour l'affectation en masse).
+  const idsVisiblesEnAttente = new Set(rows.filter(r => r.statut === 'en_attente').map(r => r.id));
+  selectionRappr.forEach(id => { if (!idsVisiblesEnAttente.has(id)) selectionRappr.delete(id); });
+
+  if (!rows.length) { document.getElementById('table-wrap').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:12px;">Aucune ligne</div>'; majBulkBar(); return; }
+
+  const peutSelectionner = roleActuel === 'admin';
+  const destLabel = new Proxy({}, { get: (_, code) => COMPTES.libelle(code) });
+  const trs = rows.map(r => `<tr>
+    ${peutSelectionner ? `<td>${r.statut==='en_attente' ? `<input type="checkbox" class="ligne-rappr-chk" data-id="${r.id}" ${selectionRappr.has(r.id)?'checked':''} onchange="onSelectRapprLigne('${r.id}', this.checked)" style="width:14px;height:14px;accent-color:var(--orange);">` : ''}</td>` : ''}
+    <td>${formatDateFR(r.date_mouvement)}</td>
+    <td>${escH(r.libelle||'')}</td>
+    <td class="r ${r.montant>=0?'amount-c':'amount-d'}">${fmt(r.montant)}</td>
+    <td><span class="chip">${destLabel[r.destination]||r.destination}</span></td>
+    <td>${r.statut==='en_attente'?'<span style="color:var(--amber);">En attente</span>':r.statut==='rapprochee'?'<span style="color:var(--green);">Rapprochée</span>':'<span style="color:var(--text-3);">Ignorée</span>'}</td>
+    <td style="font-size:10px;color:var(--text-3);">${r.motif_ignore||''}</td>
+    <td class="r" style="white-space:nowrap;">
+      ${roleActuel==='admin' && r.statut==='en_attente' ? `
+        <button class="edit-btn" onclick="openTransfer('${r.id}')" title="Rapprocher et transférer"><i class="ti ti-arrow-right"></i></button>
+        <button class="ignore-btn" onclick="openIgnore('${r.id}')" title="Ignorer"><i class="ti ti-eye-off"></i></button>` : ''}
+      ${roleActuel==='admin' && r.statut!=='en_attente' ? `<button class="edit-btn" onclick="rouvrir('${r.id}')" title="Remettre en attente"><i class="ti ti-arrow-back-up"></i></button>` : ''}
+      ${roleActuel==='admin' ? `<button class="del-btn" onclick="supprimerLigne('${r.id}')" title="Supprimer"><i class="ti ti-trash"></i></button>` : ''}
+    </td>
+  </tr>`).join('');
+
+  const enteteSelect = peutSelectionner ? `<th><input type="checkbox" id="select-all-rappr" onchange="toggleAllRappr(this.checked)" style="width:14px;height:14px;accent-color:var(--orange);" title="Tout sélectionner (lignes en attente visibles)"></th>` : '';
+  document.getElementById('table-wrap').innerHTML = `<table><thead><tr>
+    ${enteteSelect}<th>Date</th><th>Libellé</th><th class="r">Montant</th><th>Destination</th><th>Statut</th><th>Motif</th><th class="r">Actions</th>
+  </tr></thead><tbody>${trs}</tbody></table>`;
+  majBulkBar();
+}
+
+// ============================================================
+// SÉLECTION MULTIPLE + AFFECTATION EN MASSE
+// ============================================================
+function onSelectRapprLigne(id, checked) {
+  if (checked) selectionRappr.add(id); else selectionRappr.delete(id);
+  majBulkBar();
+}
+function toggleAllRappr(checked) {
+  document.querySelectorAll('.ligne-rappr-chk').forEach(cb => {
+    cb.checked = checked;
+    if (checked) selectionRappr.add(cb.dataset.id); else selectionRappr.delete(cb.dataset.id);
+  });
+  majBulkBar();
+}
+function viderSelectionRappr() {
+  selectionRappr.clear();
+  renderTable();
+}
+function majBulkBar() {
+  const bar = document.getElementById('bulk-bar');
+  const n = selectionRappr.size;
+  bar.classList.toggle('hidden', n === 0);
+  document.getElementById('bulk-count').textContent = n + ' sélectionnée(s)';
+  const selectAll = document.getElementById('select-all-rappr');
+  if (selectAll) {
+    const total = document.querySelectorAll('.ligne-rappr-chk').length;
+    selectAll.checked = total > 0 && n === total;
+  }
+}
+async function assignerEnMasse(btn) {
+  const type = document.getElementById('bulk-type').value;
+  const errEl = document.getElementById('bulk-err');
+  errEl.classList.add('hidden');
+  if (!type) { errEl.textContent = 'Choisissez un type de mouvement.'; errEl.classList.remove('hidden'); return; }
+  const ids = Array.from(selectionRappr);
+  if (!ids.length) return;
+  if (!confirm('Affecter ' + ids.length + ' ligne(s) au type "' + type + '" et les transférer ?')) return;
+
+  if (btn) btn.disabled = true;
+  let ok = 0, echecs = [];
+  for (const id of ids) {
+    try {
+      const { error } = await supabaseClient.rpc('transferer_import_rapprochement', {
+        p_id: id, p_type_mouvement: type,
+        p_description: null, p_nom_chat: null, p_numero_recu: null, p_fournisseur: null
+      });
+      if (error) throw error;
+      ok++;
+    } catch (e) { echecs.push(e.message || String(e)); }
+  }
+  if (btn) btn.disabled = false;
+  selectionRappr.clear();
+  await loadData();
+  if (echecs.length) {
+    errEl.textContent = ok + ' transférée(s), ' + echecs.length + ' échec(s) : ' + echecs[0];
+    errEl.classList.remove('hidden');
+  } else {
+    showToast(ok + ' ligne(s) transférée(s) !');
+  }
+}
+
+// ============================================================
+// TRANSFERT
+// ============================================================
+function openTransfer(id) {
+  const r = allImports.find(x => x.id === id); if (!r) return;
+  transferTarget = id;
+  document.getElementById('transfer-detail').innerHTML = `<strong>${escH(r.libelle||'')}</strong><br>${formatDateFR(r.date_mouvement)} — ${fmt(r.montant)}`;
+  document.getElementById('tr-type').value = r.type_mouvement || '';
+  if (document.getElementById('tr-type').value !== (r.type_mouvement || '')) document.getElementById('tr-type').selectedIndex = 0;
+  onTrTypeChange();
+  if (r.description) document.getElementById('tr-desc').value = r.description;
+  document.getElementById('tr-fourn').selectedIndex = 0;
+  document.getElementById('tr-chat').value = r.nom_chat || ''; document.getElementById('tr-recu').value = r.numero_recu || '';
+  document.getElementById('tr-err').classList.add('hidden');
+  document.getElementById('modal-transfer').classList.remove('hidden');
+}
+function closeTransfer() { document.getElementById('modal-transfer').classList.add('hidden'); transferTarget = null; }
+async function confirmTransfer() {
+  const type = document.getElementById('tr-type').value;
+  if (!type) { const e=document.getElementById('tr-err'); e.textContent='Le type de mouvement est obligatoire.'; e.classList.remove('hidden'); return; }
+  const btn = document.getElementById('btn-confirm-transfer'); btn.disabled = true;
+  try {
+    const { error } = await supabaseClient.rpc('transferer_import_rapprochement', {
+      p_id: transferTarget, p_type_mouvement: type,
+      p_description: document.getElementById('tr-desc').value || null,
+      p_nom_chat: document.getElementById('tr-chat').value.trim() || null,
+      p_numero_recu: document.getElementById('tr-recu').value.trim() || null,
+      p_fournisseur: document.getElementById('tr-fourn').value || null,
+    });
+    if (error) throw error;
+    closeTransfer(); showToast('Transférée !'); await loadData();
+  } catch(e) { const el=document.getElementById('tr-err'); el.textContent='Erreur : '+e.message; el.classList.remove('hidden'); }
+  finally { btn.disabled = false; }
+}
+
+function openIgnore(id) { ignoreTarget = id; document.getElementById('ignore-motif').value=''; document.getElementById('modal-ignore').classList.remove('hidden'); }
+function closeIgnore() { document.getElementById('modal-ignore').classList.add('hidden'); ignoreTarget = null; }
+async function confirmIgnore() {
+  try { const { error } = await supabaseClient.rpc('ignorer_import_rapprochement', { p_id: ignoreTarget, p_motif: document.getElementById('ignore-motif').value.trim()||null }); if (error) throw error; closeIgnore(); showToast('Ligne ignorée'); await loadData(); }
+  catch(e) { alert('Erreur : ' + e.message); }
+}
+async function rouvrir(id) {
+  try { const { error } = await supabaseClient.rpc('rouvrir_import_rapprochement', { p_id: id }); if (error) throw error; showToast('Remise en attente'); await loadData(); }
+  catch(e) { alert('Erreur : ' + e.message); }
+}
+async function supprimerLigne(id) {
+  if (!confirm('Supprimer définitivement cette ligne d\'import ?')) return;
+  try { const { error } = await supabaseClient.rpc('supprimer_import_rapprochement', { p_id: id }); if (error) throw error; showToast('Supprimée'); await loadData(); }
+  catch(e) { alert('Erreur : ' + e.message); }
+}
+
+
+// ============================================================
+// IMPORT SUIVI — par catégorie (inspiré de l'ancien import-suivi.html)
+// ============================================================
+const PERS = 'personne:personnes(nom,prenom,raison_sociale)';
+const SV_CATS = [
+  { key:'adoption',   label:'Adoptions',        icon:'ti-heart',     table:'adoptions',    date:'date_adoption',    modes:['virement','espece','cb'], select:'id,date_adoption,montant_virement,montant_espece,montant_cb,'+PERS+',animal:animaux(nom_usuel,nom_adoption)', type:'Adoption', desc:'Adoption' },
+  { key:'don',        label:'Dons',             icon:'ti-gift',      table:'dons',         date:'date_signature',   modes:['virement','espece','cb'], select:'id,date_signature,montant_virement,montant_espece,montant_cb,numero_recu_fiscal,'+PERS, type:'Dons', desc:'Dons' },
+  { key:'adhesion',   label:'Adhésions',        icon:'ti-id-badge',  table:'adhesions',    date:'date_adhesion',    modes:['virement','espece'],      select:'id,date_adhesion,montant_virement,montant_espece,'+PERS, type:'Adhesion', desc:'Adhesion' },
+  { key:'reservation',label:'Rés. chaton',      icon:'ti-cat',       table:'reservations', date:'date_reservation', modes:['virement','espece','cb'], select:'id,date_reservation,montant_virement,montant_espece,montant_cb,'+PERS+',animal:animaux(nom_usuel,nom_adoption)', filtre:['type_reservation','chaton'], type:'Adoption', desc:'Reservation' },
+  { key:'reservation_chat', label:'Rés. chat',  icon:'ti-paw',       table:'reservations', date:'date_reservation', modes:['virement','espece','cb'], select:'id,date_reservation,montant_virement,montant_espece,montant_cb,'+PERS+',animal:animaux(nom_usuel,nom_adoption)', filtre:['type_reservation','chat'], type:'Adoption', desc:'Reservation', suivi:'reservation' },
+  { key:'reservation_autre', label:'Rés. autre animal', icon:'ti-feather', table:'reservations', date:'date_reservation', modes:['virement','espece','cb'], select:'id,date_reservation,montant_virement,montant_espece,montant_cb,'+PERS+',animal:animaux(nom_usuel,nom_adoption)', filtre:['type_reservation','autre_animal'], type:'Adoption', desc:'Reservation', suivi:'reservation' },
+];
+const SV_MODES = { virement:'Virement', espece:'Espèces', cb:'CB' };
+let svCharge = false, svCat = 'adoption', svLignes = {}, svTraites = new Set(), svSel = new Map();
+
+const svNom = r => { const p = r.personne; if (!p) return 'Anonyme'; return p.raison_sociale || [p.prenom, p.nom].filter(Boolean).join(' ') || 'Anonyme'; };
+const svTypeSuivi = c => c.suivi || c.key;
+const svNorm = x => String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+async function chargerSuivi() {
+  document.getElementById('sv-wrap').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);">Chargement…</div>';
+  try {
+    // Lignes déjà envoyées au rapprochement + enregistrements déjà liés à un mouvement
+    const [{ data: imp }, { data: lc }, { data: lb }] = await Promise.all([
+      supabaseClient.from('import_rapprochement').select('suivi_type,suivi_id,suivi_mode').not('suivi_id','is',null).neq('statut','ignoree'),
+      supabaseClient.from('caisse_mouvement_suivi_liens').select('adhesion_id,don_id,adoption_id,reservation_id'),
+      supabaseClient.from('banque_mouvement_suivi_liens').select('adhesion_id,don_id,adoption_id,reservation_id'),
+    ]);
+    svTraites = new Set();
+    (imp||[]).forEach(r => svTraites.add(`${r.suivi_type}:${r.suivi_id}:${r.suivi_mode}`));
+    [...(lc||[]), ...(lb||[])].forEach(l => {
+      ['adhesion','don','adoption','reservation'].forEach(t => { if (l[t+'_id']) svTraites.add(`${t}:${l[t+'_id']}:*`); });
+    });
+    await Promise.all(SV_CATS.map(async c => {
+      let q = supabaseClient.from(c.table).select(c.select).order(c.date, { ascending:false, nullsFirst:false }).limit(1000);
+      if (c.filtre) q = q.eq(c.filtre[0], c.filtre[1]);
+      const { data, error } = await q;
+      if (error) throw new Error(c.label + ' : ' + error.message);
+      svLignes[c.key] = [];
+      (data||[]).forEach(r => c.modes.forEach(m => {
+        const montant = parseFloat(r['montant_'+m]) || 0;
+        if (montant <= 0) return;
+        const st = svTypeSuivi(c), mode = SV_MODES[m];
+        svLignes[c.key].push({
+          cle: `${c.key}:${r.id}:${mode}`, cat: c.key, suivi_type: st, suivi_id: r.id, mode, montant,
+          date: r[c.date], nom: svNom(r), chat: r.animal ? (r.animal.nom_usuel || r.animal.nom_adoption || '') : '',
+          recu: r.numero_recu_fiscal || '',
+          traite: svTraites.has(`${st}:${r.id}:${mode}`) || svTraites.has(`${st}:${r.id}:*`),
+        });
+      }));
+    }));
+    svCharge = true;
+    svSel.clear();
+    renderSuivi();
+  } catch (e) {
+    document.getElementById('sv-wrap').innerHTML = `<div style="padding:24px;text-align:center;color:var(--red);font-size:12px;">Erreur : ${escH(e.message)}<br><span style="color:var(--text-3);">As-tu bien exécuté 058_import_suivi.sql ?</span></div>`;
+  }
+}
+
+function svSwitchCat(k) { svCat = k; renderSuivi(); }
+
+function renderSuivi() {
+  const nAFaire = k => (svLignes[k]||[]).filter(l => !l.traite).length;
+  const total = SV_CATS.reduce((s,c) => s + nAFaire(c.key), 0);
+  const bt = document.getElementById('sv-badge-total'); bt.textContent = total; bt.style.display = total ? '' : 'none';
+  document.getElementById('sv-subtabs').innerHTML = SV_CATS.map(c =>
+    `<button class="sv-sub ${c.key===svCat?'active':''}" onclick="svSwitchCat('${c.key}')"><i class="ti ${c.icon}"></i> ${c.label}${nAFaire(c.key)?`<span class="sv-badge">${nAFaire(c.key)}</span>`:''}</button>`).join('');
+
+  const toutes = svLignes[svCat] || [];
+  const aFaire = toutes.filter(l => !l.traite);
+  const sum = a => a.reduce((s,l) => s + l.montant, 0);
+  document.getElementById('sv-kpis').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Lignes (catégorie)</div><div class="kpi-value">${toutes.length}</div></div>
+    <div class="kpi"><div class="kpi-label">À envoyer</div><div class="kpi-value" style="color:var(--orange)">${aFaire.length}</div></div>
+    <div class="kpi"><div class="kpi-label">→ Caisse</div><div class="kpi-value" style="color:var(--amber)">${fmt(sum(aFaire.filter(l=>l.mode==='Espèces')))}</div></div>
+    <div class="kpi"><div class="kpi-label">→ Banque</div><div class="kpi-value" style="color:var(--blue)">${fmt(sum(aFaire.filter(l=>l.mode!=='Espèces')))}</div></div>`;
+
+  const q = svNorm(document.getElementById('sv-search').value), mode = document.getElementById('sv-mode').value, hide = document.getElementById('sv-hide').checked;
+  const rows = toutes.filter(l => (!hide || !l.traite) && (!mode || l.mode === mode) && (!q || svNorm(l.nom+' '+l.chat+' '+l.recu).includes(q)));
+  const admin = roleActuel === 'admin';
+  [...svSel.keys()].forEach(k => { const l = toutes.find(x => x.cle === k); if (!l || l.traite) svSel.delete(k); });
+
+  const hasChat = toutes.some(l => l.chat), hasRecu = toutes.some(l => l.recu);
+  document.getElementById('sv-wrap').innerHTML = !rows.length
+    ? '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:12px;">Aucune ligne</div>'
+    : `<table><thead><tr>${admin?'<th style="width:26px;"></th>':''}<th>Date</th><th>Nom</th>${hasChat?'<th>Chat</th>':''}${hasRecu?'<th>N° reçu</th>':''}<th class="r">Montant</th><th>Règlement</th><th>Destination</th><th>Statut</th></tr></thead><tbody>${rows.map(l => `<tr class="${l.traite?'sv-done':''}">
+      ${admin?`<td>${l.traite?'':`<input type="checkbox" ${svSel.has(l.cle)?'checked':''} onchange="svToggle('${l.cle}',this.checked)" style="width:14px;height:14px;accent-color:var(--orange);">`}</td>`:''}
+      <td>${formatDateFR(l.date)}</td><td style="font-weight:500;">${escH(l.nom)}</td>${hasChat?`<td>${escH(l.chat)}</td>`:''}${hasRecu?`<td>${escH(l.recu)}</td>`:''}
+      <td class="r amount-c">${fmt(l.montant)}</td><td><span class="chip">${l.mode}</span></td>
+      <td><span class="chip">${l.mode==='Espèces'?'Caisse':'Banque'}</span></td>
+      <td>${l.traite?'<span style="color:var(--green);">✓ Traité</span>':'<span style="color:var(--amber);">À envoyer</span>'}</td></tr>`).join('')}</tbody></table>`;
+  document.getElementById('sv-count').textContent = svSel.size + ' sélectionnée(s) — ' + fmt(sum([...svSel.values()]));
+  document.getElementById('sv-btn-import').disabled = !svSel.size || !admin;
+  document.getElementById('sv-bar').classList.toggle('hidden', !admin);
+}
+function svToggle(cle, on) { const l = (svLignes[svCat]||[]).find(x => x.cle === cle); if (on && l) svSel.set(cle, l); else svSel.delete(cle); renderSuivi(); }
+function svToutSelectionner() {
+  const q = svNorm(document.getElementById('sv-search').value), mode = document.getElementById('sv-mode').value;
+  (svLignes[svCat]||[]).filter(l => !l.traite && (!mode || l.mode === mode) && (!q || svNorm(l.nom+' '+l.chat+' '+l.recu).includes(q))).forEach(l => svSel.set(l.cle, l));
+  renderSuivi();
+}
+
+function svTrouverType(valeur) { const v = svNorm(valeur); return typesEtDescriptions.find(t => svNorm(t.valeur) === v); }
+function svOuvrirImport() {
+  const c = SV_CATS.find(x => x.key === svCat), t = svTrouverType(c.type);
+  document.getElementById('sv-resume').innerHTML = `<strong>${svSel.size}</strong> ligne(s) — ${escH(c.label)} — ${fmt([...svSel.values()].reduce((s,l)=>s+l.montant,0))}`;
+  document.getElementById('sv-type').innerHTML = '<option value="">— Choisir plus tard (au rapprochement) —</option>' + typesEtDescriptions.map(x => `<option ${t&&x.id===t.id?'selected':''}>${escH(x.valeur)}</option>`).join('');
+  svTypeChange(c.desc);
+  document.getElementById('sv-err').classList.add('hidden');
+  document.getElementById('modal-sv').classList.remove('hidden');
+}
+function svTypeChange(descDefaut) {
+  const t = typesEtDescriptions.find(x => x.valeur === document.getElementById('sv-type').value);
+  const d = svNorm(typeof descDefaut === 'string' ? descDefaut : '');
+  document.getElementById('sv-desc').innerHTML = '<option value="">—</option>' + (t?.descriptions||[]).map(x => `<option ${d&&svNorm(x.valeur)===d?'selected':''}>${escH(x.valeur)}</option>`).join('');
+}
+async function svConfirmer() {
+  const btn = document.getElementById('sv-confirm'), err = document.getElementById('sv-err');
+  const type = document.getElementById('sv-type').value, desc = document.getElementById('sv-desc').value, caisse = document.getElementById('sv-caisse').value;
+  const periode = document.getElementById('sv-periode').value;
+  const c = SV_CATS.find(x => x.key === svCat);
+  const lignes = [...svSel.values()].map(l => ({
+    suivi_type: l.suivi_type, suivi_id: l.suivi_id, mode: l.mode, destination: l.mode === 'Espèces' ? caisse : ((COMPTES.banques()[0] || {}).code || 'banque'),
+    date: l.date, periode, libelle: l.nom + (l.chat ? ' — ' + l.chat : ''), montant: l.montant,
+    type_mouvement: type, description: type ? desc : '', nom_chat: l.chat, numero_recu: l.recu,
+  }));
+  btn.disabled = true; err.classList.add('hidden');
+  try {
+    const { data, error } = await supabaseClient.rpc('importer_suivi_vers_rapprochement', { p_lignes: lignes });
+    if (error) throw error;
+    document.getElementById('modal-sv').classList.add('hidden');
+    showToast(`${data} ligne(s) envoyée(s) au rapprochement`);
+    await chargerSuivi(); await loadData();
+  } catch (e) { err.textContent = 'Erreur : ' + e.message; err.classList.remove('hidden'); }
+  finally { btn.disabled = false; }
+}
+
+function fmt(v) { if (v===null||v===undefined||v==='') return '—'; return parseFloat(v).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €'; }
+function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,"&#39;").replace(/"/g,'&quot;'); }
+function showToast(m) { const t=document.createElement('div'); t.className='success-toast'; t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
+function formatDateFR(d) { if (!d) return '—'; const s=String(d).trim(); if (/^\d{4}-\d{2}-\d{2}/.test(s)) { const p=s.slice(0,10).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; } return s; }
+</script>
+</body>
+</html>
