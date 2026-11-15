@@ -117,7 +117,7 @@ function listeAnimaux(animaux) {
 }
 const LABELS_ORIGINE = { depot:'Dépôt', abandon:'Abandon', saisie:'Saisie', trappage:'Trappage',
   ne_a_association:'Né à l\'association', transfert_autre_association:'Transfert d\'une autre association' };
-const LABELS_ACCUEIL = { provisoire:'Provisoire', chat_libre:'Chat libre', adoption:'En vue d\'adoption' };
+const LABELS_ACCUEIL = { provisoire:'Temporaire', chat_libre:'Longue durée', adoption:'En vue d\'adoption' };
 // Statut calculé d'un dossier d'adoption : complet / incomplet / à vérifier (adoption antérieure au suivi)
 function statutDossier(d, adoptionId) {
   const rows = (d.pieces_adoption || []).filter(x => x.adoption_id === adoptionId);

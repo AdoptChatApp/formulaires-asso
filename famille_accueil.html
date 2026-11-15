@@ -37,8 +37,8 @@
 
 <p style="text-align:center;">
     <span class="blue bold">Type :</span>
-    <span class="clickable-row" onclick="toggleCheck(this, 'typeFA'); majTypeAccueil()"><span class="checkbox" data-group="typeFA" id="type_provisoire"></span> Provisoire</span>
-    <span class="clickable-row" onclick="toggleCheck(this, 'typeFA'); majTypeAccueil()"><span class="checkbox" data-group="typeFA" id="type_chat_libre"></span> Chat libre</span>
+    <span class="clickable-row" onclick="toggleCheck(this, 'typeFA'); majTypeAccueil()"><span class="checkbox" data-group="typeFA" id="type_provisoire"></span> Temporaire</span>
+    <span class="clickable-row" onclick="toggleCheck(this, 'typeFA'); majTypeAccueil()"><span class="checkbox" data-group="typeFA" id="type_chat_libre"></span> Longue durée</span>
     <span class="clickable-row" onclick="toggleCheck(this, 'typeFA'); majTypeAccueil()"><span class="checkbox" data-group="typeFA" id="type_adoption"></span> En vue d'adoption</span>
 </p>
 
@@ -307,7 +307,7 @@
 
 
         if (!typeAccueilChoisi()) {
-            missing.push("Type d'accueil (Provisoire / Chat libre / En vue d'adoption)");
+            missing.push("Type d'accueil (Temporaire / Longue durée / En vue d'adoption)");
         }
         return missing;
     };
@@ -377,21 +377,14 @@ chargerListeSaisisseurs();
                 data.filename = buildFilename(data);
                 try {
                     const pdfBytes = await genererPdfFormulaire();
-                    let erreurMail = null;
-                    try {
-                        await envoyerMailFormulaire({
+                    await envoyerMailFormulaire({
                         sujet: "Famille d'accueil — " + (data.nom_animal || ''),
                         corps: construireCorpsMail(data),
                         pdfBytes: pdfBytes,
                         pdfNomFichier: data.filename + '.pdf',
                         emailClient: data.email,
                         nomClient: ((data.prenom || '') + ' ' + (data.nom || '')).trim()
-                        });
-                    } catch (eMail) {
-                        console.error('Erreur envoi mail :', eMail);
-                        erreurMail = eMail;
-                    }
-                    // Le PDF est déposé sur Drive même si le mail n'est pas parti.
+                    });
                     try {
                         await enregistrerPdfDrive({
                             onglet: data.onglet,
@@ -409,7 +402,6 @@ chargerListeSaisisseurs();
                         console.error('Erreur dépôt Drive :', eDrive);
                         avertissementMail += ' ⚠️ Le dépôt du PDF sur Drive a échoué (' + (eDrive.message || eDrive) + ').';
                     }
-                    if (erreurMail) throw erreurMail;
                 } catch (e) {
                     console.error('Erreur envoi PDF/mail :', e);
                     avertissementMail = ' ⚠️ Mais l\'envoi du PDF par mail a échoué (' + (e.message || e) + ').';
