@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Notes de frais — {{asso.nom}}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="entete-site.css">
+<link rel="stylesheet" href="nouveaux-formulaires.css">
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="selecteur-personne.js"></script>
+<script src="formulaire-generique.js"></script>
+<script>
+var LIBS = { a_valider:'À valider', validee:'Validée', refusee:'Refusée', remboursee:'Remboursée' };
+async function statut(r, sb, s, extra) {
+  var x = await sb.rpc('changer_statut_note_frais', Object.assign({ p_id: r.id, p_statut: s }, extra || {})); if (x.error) throw x.error;
+}
+FG.page({
+  titre: 'Notes de frais', intro: 'Remboursement des achats (nourriture, litière, soins) et frais de déplacement engagés par les bénévoles et familles d\'accueil.',
+  sections: [
+    FG.PERSONNE('Bénévole / famille d\'accueil'),
+    { titre: 'Dépense', champs: [
+      { id:'date_frais', label:'Date', type:'date', requis:true },
+      { id:'categorie', label:'Catégorie', type:'select', requis:true, options:['Nourriture','Litière','Vétérinaire','Médicaments','Transport / carburant','Fournitures','Communication','Autre'] },
+      { id:'montant', label:'Montant (€)', type:'number', requis:true },
+      { id:'kilometres', label:'Kilomètres (si déplacement)', type:'number' },
+      { id:'animal_id', label:'Animal concerné (facultatif)', type:'animal' },
+      { id:'justificatif_url', label:'Lien du justificatif', type:'text', aide:'Lien Google Drive de la photo du ticket ou de la facture' },
+      { id:'description', label:'Description', type:'textarea' },
+      { id:'saisi_par', label:'Saisi par', type:'saisisseur' }
+    ]}
+  ],
+  rpc: 'creer_note_frais', messageSucces: 'Note de frais enregistrée.',
+  listes: [{ titre: 'Suivi des notes de frais', vide: 'Aucune note de frais.',
+    charger: async function (sb) { var r = await sb.rpc('lister_notes_frais'); if (r.error) throw r.error; return r.data; },
+    colonnes: [
+      { t:'Date', f:function(r){return FG.fmtDate(r.date_frais);} }, { t:'Personne', f:function(r){return r.personne;} },
+      { t:'Catégorie', f:function(r){return r.categorie + (r.animal ? ' (' + r.animal + ')' : '');} }, { t:'Montant', f:function(r){return FG.fmtEuro(r.montant);} },
+      { t:'Justificatif', brut:true, f:function(r){return r.justificatif_url ? '<a href="' + FG.esc(r.justificatif_url) + '" target="_blank" rel="noopener">Voir</a>' : '';} },
+      { t:'Statut', brut:true, f:function(r){return '<span class="fg-badge">' + LIBS[r.statut] + '</span>';} }
+    ],
+    actions: [
+      { libelle:'Valider', si:function(r){return r.statut==='a_valider';}, f:function(r,sb){return statut(r,sb,'validee');} },
+      { libelle:'Refuser', si:function(r){return r.statut==='a_valider';}, f:function(r,sb){return statut(r,sb,'refusee');} },
+      { libelle:'Marquer remboursée', si:function(r){return r.statut==='validee';}, f: async function (r, sb) {
+        var rep = await FG.demander('Remboursement de ' + FG.fmtEuro(r.montant), [
+          { id:'date', label:'Date du remboursement', type:'date', defaut:new Date().toISOString().slice(0,10) },
+          { id:'mode', label:'Mode', type:'select', options:['Virement','Chèque','Espèces'] } ]);
+        if (rep) await statut(r, sb, 'remboursee', { p_date_remboursement: rep.date || null, p_mode: rep.mode });
+      } }
+    ] }]
+});
+</script>
+</body>
+</html>

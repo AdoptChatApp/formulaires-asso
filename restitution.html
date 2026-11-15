@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Restitution — {{asso.nom}}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="entete-site.css">
+<link rel="stylesheet" href="nouveaux-formulaires.css">
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="selecteur-personne.js"></script>
+<script src="formulaire-generique.js"></script>
+<script>
+FG.page({
+  titre: "Restitution d'un animal adopté", intro: "À utiliser quand une adoption ne fonctionne pas et que l'animal revient à l'association. Il repasse au statut « adoptable ».",
+  sections: [{ titre: 'Restitution', champs: [
+    { id:'animal_id', label:'Animal adopté', type:'animal', requis:true, large:true, statuts:['adopte'] },
+    { id:'date_restitution', label:'Date de restitution', type:'date', requis:true },
+    { id:'motif', label:'Motif', type:'select', requis:true, options:['Allergie','Déménagement','Problème de comportement','Problème de santé','Changement de situation','Mésentente avec un autre animal','Autre'] },
+    { id:'etat_sante', label:"État de santé à la restitution", type:'textarea' },
+    { id:'montant_rembourse', label:'Montant remboursé (€)', type:'number' },
+    { id:'commentaires', label:'Commentaires', type:'textarea' },
+    { id:'saisi_par', label:'Saisi par', type:'saisisseur' }
+  ]}],
+  rpc: 'creer_restitution',
+  params: function (v) { return { p_animal_id: v.animal_id, p_date: v.date_restitution || null, p_motif: v.motif, p_etat_sante: v.etat_sante || null,
+    p_montant_rembourse: v.montant_rembourse ? Number(v.montant_rembourse) : null, p_commentaires: v.commentaires || null, p_saisi_par_id: v.saisi_par || null }; },
+  messageSucces: "Restitution enregistrée : l'animal est de nouveau adoptable."
+});
+</script>
+</body>
+</html>

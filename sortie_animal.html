@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Décès / sortie — {{asso.nom}}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="entete-site.css">
+<link rel="stylesheet" href="nouveaux-formulaires.css">
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="selecteur-personne.js"></script>
+<script src="formulaire-generique.js"></script>
+<script>
+FG.page({
+  titre: "Décès ou sortie d'un animal", intro: "Enregistre le décès, l'euthanasie, le relâcher ou le transfert vers une autre structure, et met à jour le statut.",
+  sections: [{ titre: 'Sortie', champs: [
+    { id:'animal_id', label:'Animal', type:'animal', requis:true, large:true, statuts:['adoptable','non_adoptable','malade','au_veto','famille_accueil','reservation_annulee','reserve'] },
+    { id:'type_sortie', label:'Type de sortie', type:'select', requis:true, options:[['deces','Décès'],['euthanasie','Euthanasie'],['relache','Relâché (chat libre)'],['transfert','Transfert vers une autre structure']] },
+    { id:'date_sortie', label:'Date', type:'date', requis:true },
+    { id:'cause', label:'Cause / circonstances', type:'textarea' },
+    { id:'destination', label:'Destination (transfert)', type:'text' },
+    { id:'commentaires', label:'Commentaires', type:'textarea' },
+    { id:'saisi_par', label:'Saisi par', type:'saisisseur' }
+  ]}],
+  rpc: 'creer_sortie_animal',
+  params: function (v) { return { p_animal_id: v.animal_id, p_type_sortie: v.type_sortie, p_date: v.date_sortie || null, p_cause: v.cause || null,
+    p_destination: v.destination || null, p_commentaires: v.commentaires || null, p_saisi_par_id: v.saisi_par || null }; },
+  messageSucces: 'Sortie enregistrée et statut mis à jour.'
+});
+</script>
+</body>
+</html>

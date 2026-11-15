@@ -1,0 +1,42 @@
+/* Styles des formulaires générés par formulaire-generique.js */
+:root { --cream:#faf7f2; --warm:#f0e8d8; --brown:#3d2b1f; --orange:#c96b2a; --grey:#8a7968; --white:#fff; --rouge:#b00020; --vert:#2e7d32; }
+* { box-sizing: border-box; }
+body { margin:0; font-family:'DM Sans',system-ui,sans-serif; background:var(--cream); color:var(--brown); }
+.fg-wrap { max-width:860px; margin:0 auto; padding:22px 16px 60px; }
+.fg-retour { display:inline-block; margin-bottom:12px; color:var(--orange); text-decoration:none; font-size:14px; }
+.fg-carte { background:var(--white); border:1px solid var(--warm); border-radius:12px; padding:22px; margin-bottom:18px; box-shadow:0 2px 12px rgba(61,43,31,.06); }
+.fg-carte h1 { margin:0 0 6px; font-size:24px; }
+.fg-carte h2 { margin:0 0 14px; font-size:17px; color:var(--orange); }
+.fg-intro { color:var(--grey); margin:0 0 6px; line-height:1.5; }
+.fg-grille { display:grid; grid-template-columns:repeat(2,1fr); gap:12px 16px; }
+.fg-champ { display:flex; flex-direction:column; gap:4px; }
+.fg-champ.large { grid-column:1 / -1; }
+.fg-champ label { font-size:13px; font-weight:600; }
+.fg-champ .req { color:var(--rouge); }
+.fg-champ .aide { font-size:12px; color:var(--grey); }
+.fg-champ input, .fg-champ select, .fg-champ textarea { font:inherit; padding:9px 10px; border:1px solid #cfc6b8; border-radius:8px; background:#fff; width:100%; }
+.fg-champ textarea { min-height:90px; resize:vertical; }
+.fg-champ input:focus, .fg-champ select:focus, .fg-champ textarea:focus { outline:2px solid var(--orange); border-color:var(--orange); }
+.fg-champ.erreur input, .fg-champ.erreur select, .fg-champ.erreur textarea { border-color:var(--rouge); background:#fff6f6; }
+.fg-champ.case { flex-direction:row; align-items:flex-start; gap:10px; }
+.fg-champ.case input { width:auto; margin-top:3px; }
+.fg-champ.case label { font-weight:500; }
+.fg-piege { position:absolute; left:-9999px; height:0; overflow:hidden; }
+.fg-actions { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+.fg-btn { background:var(--orange); color:#fff; border:0; border-radius:8px; padding:11px 22px; font:inherit; font-weight:600; cursor:pointer; }
+.fg-btn.clair { background:#fff; color:var(--brown); border:1px solid #cfc6b8; }
+.fg-btn.petit { padding:5px 10px; font-size:12px; font-weight:500; }
+.fg-btn:disabled { opacity:.6; cursor:wait; }
+.fg-msg { padding:12px 14px; border-radius:8px; margin-top:14px; font-size:14px; line-height:1.5; }
+.fg-msg.ok { background:#eaf6eb; color:var(--vert); border:1px solid #bfe0c2; }
+.fg-msg.err { background:#fdecee; color:var(--rouge); border:1px solid #f3c1c8; }
+.fg-table-wrap { overflow-x:auto; }
+table.fg-table { width:100%; border-collapse:collapse; font-size:13px; }
+.fg-table th { text-align:left; background:var(--warm); padding:8px; white-space:nowrap; }
+.fg-table td { padding:8px; border-bottom:1px solid #eee; vertical-align:top; }
+.fg-vide { color:var(--grey); font-style:italic; }
+.fg-badge { display:inline-block; padding:2px 8px; border-radius:10px; background:var(--warm); font-size:12px; }
+#fg-login { position:fixed; inset:0; background:var(--cream); z-index:99999; display:flex; align-items:center; justify-content:center; }
+#fg-login .boite { max-width:340px; width:90%; background:#fff; border:1px solid var(--warm); border-radius:10px; padding:28px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+#fg-login input { width:100%; margin-bottom:10px; padding:9px 10px; border:1px solid #ccc; border-radius:6px; font:inherit; }
+@media (max-width:640px) { .fg-grille { grid-template-columns:1fr; } }

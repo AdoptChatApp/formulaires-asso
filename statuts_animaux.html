@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="stylesheet" href="entete-site.css">
+<title>Statuts des animaux — {{asso.nom}}</title>
+<link rel="stylesheet" href="formulaires-commun.css">
+<style>
+  :root{ --cream:#faf7f2; --warm:#f0e8d8; --brown:#3d2b1f; --orange:#c96b2a; --grey:#8a7968; --red:#c00000; --green:#2e7d32; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:Arial,sans-serif;background:var(--cream);color:var(--brown);}
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px 60px;}
+  .card{background:#fff;border:1px solid var(--warm);border-radius:12px;padding:16px 18px;margin-bottom:18px;}
+  .card h2{font-size:13px;margin:0 0 12px;color:var(--orange);}
+  .search-box input{width:100%;box-sizing:border-box;padding:12px 14px;font-size:14px;border:1px solid var(--warm);border-radius:10px;background:#fff;}
+  .selecteur-animal-dropdown div{font-size:13px;}
+  .champ{margin-bottom:10px;}
+  .champ label{display:block;font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:3px;}
+  .champ input, .champ select{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--warm);border-radius:6px;font-size:13px;background:#fff;}
+  .ligne2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .btn{padding:9px 18px;background:var(--orange);color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:13px;}
+  .btn:hover{opacity:0.92;}
+  .msg{font-size:12px;margin-top:8px;min-height:16px;}
+  .msg.ok{color:var(--green);} .msg.err{color:var(--red);}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;background:var(--warm);font-size:10px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:12.5px;margin-bottom:12px;}
+  .grid2 .lbl{color:var(--grey);}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;}
+  th{text-align:left;font-size:10px;color:var(--grey);text-transform:uppercase;padding:4px 6px;border-bottom:1px solid var(--warm);}
+  td{padding:5px 6px;border-bottom:1px solid #f2ece1;}
+  .empty{color:var(--grey);font-size:12px;font-style:italic;}
+  #login-err{color:var(--red);font-size:12px;margin-bottom:10px;min-height:16px;}
+  optgroup{font-style:normal;}
+</style>
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+<div id="login-screen" style="position:fixed;inset:0;background:var(--cream);z-index:99999;display:flex;align-items:center;justify-content:center;">
+  <div style="max-width:340px;width:90%;background:#fff;border:1px solid var(--warm);border-radius:10px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <h1 style="font-size:16px;margin:0 0 4px;">{{asso.nom}}</h1>
+    <p style="font-size:12px;color:var(--grey);margin-bottom:16px;">Connexion requise.</p>
+    <input type="email" id="login-email" placeholder="Email" style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+    <input type="password" id="login-password" placeholder="Mot de passe" style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+    <div id="login-err"></div>
+    <button type="button" onclick="seConnecterSuivi()" style="width:100%;padding:9px;background:var(--orange);color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:13px;">Se connecter</button>
+  </div>
+</div>
+
+<div style="max-width:900px;margin:0 auto;padding:0 16px;">
+  <div id="entete"></div>
+  <p style="font-size:11px;color:var(--grey);margin:-8px 0 12px;">Faire évoluer le statut d'un animal déjà connu de l'association</p>
+</div>
+
+<div class="wrap">
+
+  <!-- Rechercher un animal existant -->
+  <div class="card">
+    <h2>Rechercher un animal</h2>
+    <div class="search-box">
+      <input type="text" id="recherche-input" placeholder="Tapez le nom du chat…">
+    </div>
+  </div>
+
+  <div id="fiche"></div>
+
+  <p style="font-size:12px;"><a href="arrivee_animal.html">→ Déclarer l'arrivée d'un nouvel animal</a></p>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="formulaires-commun.js"></script>
+<script src="selecteur-animal.js"></script>
+<script>
+const supabaseClient = creerClientSupabase();
+initSessionSuivi();
+
+let animalSelectionneId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+  creerEntete({ dateId: 'dateRef', dateLabel: 'Date :', titre: 'Statuts des animaux' });
+  chargerListeSaisisseurs();
+  initSelecteurAnimal({
+    inputId: 'recherche-input',
+    contexte: 'statuts',
+    onSelect: function(animalId) {
+      animalSelectionneId = animalId;
+      if (animalId) chargerFiche(animalId);
+      else document.getElementById('fiche').innerHTML = '';
+    }
+  });
+});
+
+function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/'/g,"&#39;").replace(/"/g,'&quot;'); }
+function fmtDate(d) { if (!d) return '—'; const s=String(d).trim(); if (/^\d{4}-\d{2}-\d{2}/.test(s)) { const p=s.slice(0,10).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; } return s; }
+function capitaliser(s) { s = String(s||''); return s.charAt(0).toUpperCase() + s.slice(1); }
+const ESPECE_LABELS = { chat: 'Chat', chien: 'Chien', lapin: 'Lapin', nac: 'NAC' };
+
+async function chargerFiche(animalId) {
+  document.getElementById('fiche').innerHTML = '<div class="card"><div class="empty">Chargement…</div></div>';
+  const { data, error } = await supabaseClient.rpc('obtenir_animal_avec_statuts', { p_animal_id: animalId });
+  if (error) { document.getElementById('fiche').innerHTML = `<div class="card"><div class="empty">Erreur : ${escH(error.message)}</div></div>`; return; }
+  if (!data) { document.getElementById('fiche').innerHTML = '<div class="card"><div class="empty">Animal introuvable.</div></div>'; return; }
+  renderFiche(data);
+}
+
+function nomPersonne(p) {
+  if (!p) return '—';
+  if (p.type_personne === 'entreprise') return p.raison_sociale || '—';
+  return `${p.prenom||''} ${p.nom||''}`.trim() || '—';
+}
+function renderFiche(d) {
+  const a = d.animal;
+  const espece = ESPECE_LABELS[(a.espece||'chat').toLowerCase()] || capitaliser(a.espece || 'chat');
+  const naissance = a.date_naissance ? fmtDate(a.date_naissance) + (a.date_naissance_estimee ? ' (estimée)' : '') : '—';
+  const sterilise = d.sterilisation ? (d.sterilisation.sterilise ? 'Oui — ' + fmtDate(d.sterilisation.date_sterilisation) : 'Non') : '—';
+  const vermifuge = d.derniere_vermifuge ? 'Oui — ' + fmtDate(d.derniere_vermifuge) : 'Non';
+  const antipuce = d.derniere_antipuce ? 'Oui — ' + fmtDate(d.derniere_antipuce) : 'Non';
+  const ORIGINES = { depot: 'Dépôt', abandon: 'Abandon', saisie: 'Saisie', ne_a_association: "Né à l'association", trappage: 'Trappage' };
+  const personneOrigine = d.personne_origine ? escH(nomPersonne(d.personne_origine)) : '';
+  const photo = d.derniere_photo;
+  let html = `<div class="card"><h2>${escH(a.nom_usuel)} <span class="badge">${escH(LABELS_STATUT[a.statut_actuel] || a.statut_actuel || '—')}</span></h2>
+    ${photo ? `<img src="${escH(photo.url)}" alt="Photo de ${escH(a.nom_usuel)}" style="max-width:220px;max-height:180px;border:1px solid #ccc;border-radius:6px;display:block;margin:0 0 4px;"><div style="font-size:11px;color:#666;margin:0 0 12px;">Photo du ${fmtDate(photo.cree_le)}</div>` : '<div class="empty" style="margin-bottom:12px;">Aucune photo enregistrée</div>'}
+    <div class="grid2">
+      <div><span class="lbl">Type :</span> ${escH(espece)}</div>
+      <div><span class="lbl">Sexe :</span> ${escH(a.sexe||'—')}</div>
+      <div><span class="lbl">Date de naissance :</span> ${naissance}</div>
+      <div><span class="lbl">Couleur :</span> ${escH(a.couleur||'—')}</div>
+      <div><span class="lbl">Maman :</span> ${escH(a.nom_maman||'—')}</div>
+      <div><span class="lbl">Puce :</span> ${escH(a.puce||'—')}</div>
+      <div><span class="lbl">Arrivée :</span> ${fmtDate(a.date_arrivee)}${a.origine_arrivee ? ' — ' + escH(ORIGINES[a.origine_arrivee] || a.origine_arrivee) : ''}</div>
+      <div><span class="lbl">Amené par :</span> ${personneOrigine || '—'}</div>
+      <div><span class="lbl">Décès :</span> ${a.date_deces?fmtDate(a.date_deces):'—'}</div>
+      <div><span class="lbl">Stérilisé(e) :</span> ${sterilise}</div>
+      <div><span class="lbl">Vermifugé :</span> ${vermifuge}</div>
+      <div><span class="lbl">Antipuce :</span> ${antipuce}</div>
+      ${a.signes_particuliers ? `<div style="grid-column:1/-1;"><span class="lbl">Autre info :</span> ${escH(a.signes_particuliers)}</div>` : ''}
+    </div>
+
+    <h2>Historique de statut</h2>
+    ${d.statuts && d.statuts.length ? `<table><thead><tr><th>Statut</th><th>Du</th><th>Au</th></tr></thead><tbody>
+      ${d.statuts.map(h=>`<tr><td>${escH(LABELS_STATUT[h.statut] || h.statut)}</td><td>${fmtDate(h.date_debut)}</td><td>${h.date_fin?fmtDate(h.date_fin):'en cours'}</td></tr>`).join('')}
+    </tbody></table>` : '<div class="empty">Aucun historique de statut</div>'}
+
+    <h2 style="margin-top:16px;">Changer le statut</h2>
+    <div class="ligne2">
+      <div class="champ">
+        <label>Nouveau statut *</label>
+        <select id="chg-statut">
+          <option value="">Chargement…</option>
+        </select>
+      </div>
+      <div class="champ">
+        <label>Date *</label>
+        <input type="date" id="chg-date">
+      </div>
+    </div>
+    <div class="champ">
+      <label>Motif / précisions</label>
+      <input type="text" id="chg-motif">
+    </div>
+    <button type="button" class="btn" onclick="changerStatut('${a.id}')">Enregistrer le statut</button>
+    <div id="chg-msg" class="msg"></div>
+  </div>`;
+
+  document.getElementById('fiche').innerHTML = html;
+  document.getElementById('chg-date').valueAsDate = new Date();
+  chargerTransitionsPossibles(a.statut_actuel);
+}
+
+// Libellés français des statuts internes (voir 030_transitions_statut_animal.sql).
+const LABELS_STATUT = {
+  adoptable: 'Adoptable', non_adoptable: 'Non adoptable',
+  malade: 'Malade', decede: 'Décédé', relache: 'Relâché', reservation_annulee: 'Réservation annulée',
+  reserve: 'Réservé', au_veto: 'Au véto', famille_accueil: "Famille d'accueil", adopte: 'Adopté'
+};
+
+// Ces statuts ne se posent QUE via les formulaires (Contrat de réservation /
+// Contrat de cession / Famille d'accueil) : ils exigent une personne et
+// créent l'enregistrement correspondant. On ne les propose donc jamais ici.
+const STATUTS_VIA_FORMULAIRE = ['reserve', 'adopte', 'famille_accueil'];
+
+// Peuple "Nouveau statut" avec les seules transitions réellement autorisées
+// depuis le statut actuel (obtenir_transitions_possibles, voir 030) — évite
+// de proposer un statut qui ferait échouer l'enregistrement.
+async function chargerTransitionsPossibles(statutActuel) {
+  const sel = document.getElementById('chg-statut');
+  const { data, error } = await supabaseClient.rpc('obtenir_transitions_possibles', { p_statut_actuel: statutActuel });
+  if (error) { sel.innerHTML = '<option value="">Erreur de chargement</option>'; console.error(error); return; }
+  const options = (data || []).map(r => r.statut_arrivee).filter(Boolean)
+    .filter(s => !STATUTS_VIA_FORMULAIRE.includes(s));
+  sel.innerHTML = '<option value="">— Choisir —</option>' +
+    options.map(s => `<option value="${s}">${escH(LABELS_STATUT[s] || s)}</option>`).join('');
+}
+
+async function changerStatut(animalId) {
+  const msg = document.getElementById('chg-msg');
+  msg.textContent = ''; msg.className = 'msg';
+  const statut = document.getElementById('chg-statut').value;
+  const date = document.getElementById('chg-date').value;
+  const saisiPar = document.getElementById('saisiPar').value;
+  if (!statut) { msg.textContent = 'Choisissez un statut.'; msg.className = 'msg err'; return; }
+  if (STATUTS_VIA_FORMULAIRE.includes(statut)) { msg.textContent = 'Ce statut se pose depuis le formulaire de réservation, d\'adoption ou de famille d\'accueil.'; msg.className = 'msg err'; return; }
+  if (!saisiPar) { msg.textContent = '"Saisi par" est obligatoire.'; msg.className = 'msg err'; return; }
+  afficherPopupChargement();
+  try {
+    const { error } = await supabaseClient.rpc('changer_statut_animal', {
+      p_animal_id: animalId,
+      p_statut: statut,
+      p_date: date || null,
+      p_motif: document.getElementById('chg-motif').value.trim() || null,
+      p_saisi_par_id: saisiPar
+    });
+    if (error) { msg.textContent = 'Erreur : ' + error.message; msg.className = 'msg err'; return; }
+    msg.textContent = 'Statut mis à jour.';
+    msg.className = 'msg ok';
+    await chargerFiche(animalId);
+  } catch (err) {
+    console.error(err);
+    msg.textContent = 'Erreur : ' + (err.message || err); msg.className = 'msg err';
+  } finally {
+    masquerPopupChargement();
+  }
+}
+</script>
+</body>
+</html>

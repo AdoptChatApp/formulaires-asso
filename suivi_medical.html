@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Suivi médical — {{asso.nom}}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="entete-site.css">
+<link rel="stylesheet" href="nouveaux-formulaires.css">
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="selecteur-personne.js"></script>
+<script src="formulaire-generique.js"></script>
+<script>
+var TYPES = [['vaccin','Vaccin'],['rappel_vaccin','Rappel de vaccin'],['vermifuge','Vermifuge'],['antipuce','Antipuce / antiparasitaire'],['test_fiv_felv','Test FIV / FeLV'],['sterilisation','Stérilisation'],['identification','Identification (puce)'],['consultation','Consultation'],['chirurgie','Acte chirurgical'],['traitement','Traitement'],['autre','Autre']];
+function libType(t) { var x = TYPES.filter(function (o) { return o[0] === t; })[0]; return x ? x[1] : (t || ''); }
+FG.page({
+  titre: 'Suivi médical — carnet de santé', intro: "Enregistrer un soin (vaccin, vermifuge, test FIV/FeLV, stérilisation, traitement…) et programmer le prochain rappel.",
+  sections: [{ titre: 'Soin réalisé', champs: [
+    { id:'animal_id', label:'Animal', type:'animal', requis:true, large:true },
+    { id:'date_soin', label:'Date du soin', type:'date', requis:true },
+    { id:'type_soin', label:'Type de soin', type:'select', requis:true, options:TYPES },
+    { id:'veterinaire', label:'Vétérinaire / clinique', type:'text' },
+    { id:'produit', label:'Produit / vaccin utilisé', type:'text' },
+    { id:'resultat', label:'Résultat (test)', type:'select', options:['Négatif','Positif','Non concluant'] },
+    { id:'cout', label:'Coût (€)', type:'number' },
+    { id:'prochain_rappel', label:'Prochain rappel', type:'date' },
+    { id:'description', label:'Observations', type:'textarea' },
+    { id:'saisi_par', label:'Saisi par', type:'saisisseur' }
+  ]}],
+  rpc: 'creer_soin_veto', messageSucces: 'Soin enregistré dans le carnet de santé.',
+  apresEnvoi: function () { afficherCarnet(); },
+  listes: [{ titre: 'Rappels à venir (30 jours)', vide: 'Aucun rappel prévu.',
+    charger: async function (sb) { var r = await sb.rpc('lister_rappels_soins', { p_jours: 30 }); if (r.error) throw r.error; return r.data; },
+    colonnes: [ { t:'Échéance', f:function(r){return FG.fmtDate(r.prochain_rappel);} }, { t:'Animal', f:function(r){return r.animal;} }, { t:'Soin', f:function(r){return libType(r.type_soin);} } ] }],
+  apres: function (sb) {
+    var carte = document.createElement('div'); carte.className = 'fg-carte'; carte.innerHTML = '<h2>Carnet de santé de l\'animal sélectionné</h2><div id="carnet"><p class="fg-vide">Choisissez un animal pour afficher son historique.</p></div>';
+    document.querySelector('.fg-wrap').appendChild(carte);
+    document.getElementById('fg_animal_id').addEventListener('change', afficherCarnet);
+  }
+});
+async function afficherCarnet() {
+  var id = FG.valeurs().animal_id, zone = document.getElementById('carnet'); if (!zone) return;
+  if (!id) { zone.innerHTML = '<p class="fg-vide">Choisissez un animal pour afficher son historique.</p>'; return; }
+  var r = await FG.client().rpc('lister_soins_animal', { p_animal_id: id });
+  if (r.error) { zone.innerHTML = '<p class="fg-msg err">' + FG.esc(r.error.message) + '</p>'; return; }
+  if (!r.data.length) { zone.innerHTML = '<p class="fg-vide">Aucun soin enregistré.</p>'; return; }
+  zone.innerHTML = '<div class="fg-table-wrap"><table class="fg-table"><thead><tr><th>Date</th><th>Soin</th><th>Produit</th><th>Résultat</th><th>Vétérinaire</th><th>Coût</th><th>Rappel</th><th>Observations</th></tr></thead><tbody>' +
+    r.data.map(function (s) { return '<tr><td>' + FG.fmtDate(s.date_soin) + '</td><td>' + FG.esc(libType(s.type_soin)) + '</td><td>' + FG.esc(s.produit || '') + '</td><td>' + FG.esc(s.resultat || '') + '</td><td>' + FG.esc(s.veterinaire || '') + '</td><td>' + FG.fmtEuro(s.cout) + '</td><td>' + FG.fmtDate(s.prochain_rappel) + '</td><td>' + FG.esc(s.description || '') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+}
+</script>
+</body>
+</html>
