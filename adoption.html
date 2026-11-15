@@ -368,45 +368,45 @@ AVEC <input type="text" class="editable editable-medium" id="produitAntiPuces" d
 <div class="section">
     <!-- Cases multiples : chaque option est indépendante -->
     <p>
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox"></span></span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="cb_adoption1"></span></span>
         participation de <span class="red bold">{{asso.tarifAdoption1}} € </span>pour la cession à charge (Comprenant l'identification par puce électronique +
         la 1ère vaccination TC + tests). <span class="blue">Les frais de stérilisation restent à la charge de la famille.</span>
     </p>
     <p>
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox"></span></span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="cb_adoption2"></span></span>
         participation de <span class="red bold">{{asso.tarifAdoption2}} € </span>pour la cession à charge (Comprenant l'identification par puce électronique +
         la 1ère et 2ème vaccination TC + tests). <span class="blue">Les frais de stérilisation restent à la charge de la famille.</span>
     </p>
     <p>
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox"></span></span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="cb_adoption3"></span></span>
         participation de <span class="red bold">{{asso.tarifAdoption3}} € </span>pour la cession à charge (Comprenant l'identification par puce électronique
         et la stérilisation + tests)
     </p>
     <p>
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox"></span></span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="cb_adoption4"></span></span>
         participation de <span class="red bold">{{asso.tarifAdoption4}} € </span>pour la cession à charge (Comprenant l'identification par puce électronique +
         la stérilisation + la vaccination TC + tests).
     </p>
     <p>
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox"></span></span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="cb_adoption5"></span></span>
         participation de <span class="red bold">{{asso.tarifAdoption5}} € </span>pour la cession à charge (Comprenant l'identification par puce électronique +
         la stérilisation + la 1ère et 2ème vaccination TC + tests).
     </p>
     <p>
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox"></span></span>
-        tarif particulier de <input type="number" class="editable editable-num" id="tarifParticulier"><span class="red"> €</span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="cb_tarifParticulier"></span></span>
+        tarif particulier de <input type="number" class="editable editable-num" id="tarifParticulier" oninput="majTotalParticipation()"><span class="red"> €</span>
     </p>
     <p>
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox"></span></span> Passeport <span class="red bold">{{asso.tarifPasseport}} €</span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="cb_passeport"></span></span> Passeport <span class="red bold">{{asso.tarifPasseport}} €</span>
         
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox"></span></span> Vaccin de la rage <span class="red bold">{{asso.tarifRage}} €</span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="cb_rage"></span></span> Vaccin de la rage <span class="red bold">{{asso.tarifRage}} €</span>
         
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox"></span></span> Test divers maladies <span class="red bold">{{asso.tarifTests}} €</span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="cb_tests"></span></span> Test divers maladies <span class="red bold">{{asso.tarifTests}} €</span>
         
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox"></span></span> Radio <span class="red bold">{{asso.tarifRadio}} €</span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="cb_radio"></span></span> Radio <span class="red bold">{{asso.tarifRadio}} €</span>
     </p>
     <p>
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox"></span></span> Caisse de transport <span class="red bold">{{asso.tarifTransport}} €</span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="cb_transport"></span></span> Caisse de transport <span class="red bold">{{asso.tarifTransport}} €</span>
     </p>
     <p>
         <span class="clickable-row" onclick="toggleCheck(this); toggleDonLibre()"><span class="checkbox" id="donLibre_check"></span></span>
@@ -423,9 +423,9 @@ AVEC <input type="text" class="editable editable-medium" id="produitAntiPuces" d
         </span>
     </p>
     <p>
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox" id="autres_check"></span></span>
+        <span class="clickable-row" onclick="toggleCheck(this); majTotalParticipation()"><span class="checkbox" id="autres_check"></span></span>
         Autres : (préciser) <input type="text" class="editable editable-long" id="autresMotif">
-        <span class="blue"> montant : </span><input type="number" class="editable editable-num" id="autresMontant"><span class="red"> €</span>
+        <span class="blue"> montant : </span><input type="number" class="editable editable-num" id="autresMontant" oninput="majTotalParticipation()"><span class="red"> €</span>
     </p>
     <p>
         <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox" id="adhesionLibre_check"></span></span>
@@ -433,11 +433,11 @@ AVEC <input type="text" class="editable editable-medium" id="produitAntiPuces" d
         notre démarche de protection et vous nous aidez à sauver toujours plus de chats dans le besoin.
     </p>
     <p>
-        <span class="clickable-row" onclick="toggleCheck(this)"><span class="checkbox" id="repriseAcompte_check"></span></span>
+        <span class="clickable-row" onclick="toggleCheck(this); majResteAPayer()"><span class="checkbox" id="repriseAcompte_check"></span></span>
         Reprise d'acompte de <span class="red bold">50 €</span> pour la réservation
     </p>
-    <p>Reste à payer <input type="number" class="editable editable-num" id="resteAPayer"><span class="red"> €</span></p>
-    <p class="total-line">Total de la participation : <input type="number" class="editable editable-num" id="totalParticipation" data-required="true" data-label="Total participation (€)"> <span class="red"> €</span></p>
+    <p>Reste à payer <input type="number" class="editable editable-num" id="resteAPayer" readonly title="Calculé automatiquement : total de la participation moins la reprise d'acompte"><span class="red"> €</span></p>
+    <p class="total-line">Total de la participation : <input type="number" class="editable editable-num" id="totalParticipation" data-required="true" data-label="Total participation (€)" readonly title="Calculé automatiquement d'après les lignes cochées"> <span class="red"> €</span></p>
 
     <!-- Paiement : multi-sélection -->
 <p><strong><span class="blue">Paiement effectué par :</span></strong></p>
@@ -868,6 +868,46 @@ function togglePaiement(element, mode) {
 // ============================================================
 
 // Afficher/masquer le choix avec/sans reçu selon la case "Dons libre"
+// Total de la participation = somme des lignes cochées (participation, tarif
+// particulier, options, « Autres »). Le don libre et l'adhésion n'entrent pas
+// dans ce total (ils ont leur propre formulaire).
+var LIGNES_TOTAL = {
+    cb_adoption1: 'tarifAdoption1', cb_adoption2: 'tarifAdoption2', cb_adoption3: 'tarifAdoption3',
+    cb_adoption4: 'tarifAdoption4', cb_adoption5: 'tarifAdoption5',
+    cb_passeport: 'tarifPasseport', cb_rage: 'tarifRage', cb_tests: 'tarifTests',
+    cb_radio: 'tarifRadio', cb_transport: 'tarifTransport'
+};
+function majTotalParticipation() {
+    var totalEl = document.getElementById('totalParticipation');
+    if (!totalEl) return;
+    var cfg = window.ASSOCIATION || {};
+    var total = 0, aucune = true;
+    function coche(id) { var e = document.getElementById(id); return !!(e && e.classList.contains('checked')); }
+    Object.keys(LIGNES_TOTAL).forEach(function (id) {
+        if (coche(id)) { total += parseFloat(cfg[LIGNES_TOTAL[id]]) || 0; aucune = false; }
+    });
+    [['cb_tarifParticulier', 'tarifParticulier'], ['autres_check', 'autresMontant']].forEach(function (p) {
+        if (coche(p[0])) {
+            total += parseFloat((document.getElementById(p[1]) || {}).value) || 0;
+            aucune = false;
+        }
+    });
+    totalEl.value = aucune ? '' : String(Math.round(total * 100) / 100);
+    majResteAPayer();
+}
+
+// Reste à payer = total de la participation - 50 € si « reprise d'acompte » est cochée
+function majResteAPayer() {
+    var totalEl = document.getElementById('totalParticipation');
+    var resteEl = document.getElementById('resteAPayer');
+    if (!totalEl || !resteEl) return;
+    if (totalEl.value === '') { resteEl.value = ''; return; }
+    var total = parseFloat(totalEl.value) || 0;
+    var reprise = document.getElementById('repriseAcompte_check');
+    var reste = total - ((reprise && reprise.classList.contains('checked')) ? 50 : 0);
+    resteEl.value = String(Math.round(reste * 100) / 100);
+}
+
 function toggleDonLibre() {
     var caseDon = document.getElementById('donLibre_check');
     var estCoche = caseDon && caseDon.classList.contains('checked');
