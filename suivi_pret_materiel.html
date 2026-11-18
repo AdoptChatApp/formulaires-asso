@@ -182,6 +182,7 @@ tr.rendu-row td { opacity:.8; }
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
 <script src="supabase-config.js"></script>
+<script src="stockage-fichiers.js"></script>
 <script src="config.js"></script>
 <script src="formulaires-commun.js"></script>
 <script>
@@ -355,7 +356,7 @@ async function chargerDonnees() {
             .order('date_mouvement', { ascending: true })
             .order('id'));
 
-        // PDF déposés sur Drive (liens enregistrés à chaque prêt / retour)
+        // PDF déposés dans le stockage (liens enregistrés à chaque prêt / retour)
         const fichiers = await lireTout(() => supabaseClient
             .from('soumission_fichiers')
             .select('enregistrement_id, url')

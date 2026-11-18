@@ -2,7 +2,6 @@
 // Formulaires {{asso.nom}}
 // ============================================================================
 
-// APPS_SCRIPT_URL est défini dans config.js
 
 // ============================================================
 // LIEN « ACCUEIL » EN HAUT DE PAGE
@@ -446,25 +445,14 @@ function encodeBase64Unicode(str) {
 }
 
 // ============================================================
-// ENVOI VERS GOOGLE
+// ENVOI GÉNÉRIQUE (OBSOLÈTE)
 // ============================================================
 async function sendToGoogle(data) {
-    var json = JSON.stringify(data);
-    console.log('Taille des donnees : ' + Math.round(json.length / 1024) + ' Ko');
-    try {
-        console.log('Envoi en cours...');
-        await fetch(APPS_SCRIPT_URL, {
-            method:  'POST',
-            mode:    'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body:    json
-        });
-        console.log('Envoi termine');
-        return true;
-    } catch(e) {
-        console.error('Erreur envoi :', e);
-        return false;
-    }
+    // Ancien envoi vers Apps Script / Google Drive : supprimé. Tous les
+    // formulaires ont leur propre saveForm() (base Supabase + PDF + mail +
+    // stockage), ce chemin n'est plus utilisé.
+    console.error('sendToGoogle() est obsolète : utilisez le saveForm() du formulaire.');
+    return false;
 }
 
 // ============================================================
@@ -1278,7 +1266,8 @@ function afficherPhotoAnimal(url, source, dateIso) {
         // bloquent l'ouverture directe d'une URL "data:".
         var w = window.open('', '_blank');
         if (!w) return;
-        w.document.write('<body style="margin:0;background:#000;"><img src="' + url + '" style="max-width:100%;height:auto;display:block;margin:auto;"></body>');
+        var src = img.getAttribute('src') || url;
+        w.document.write('<body style="margin:0;background:#000;"><img src="' + src + '" style="max-width:100%;height:auto;display:block;margin:auto;"></body>');
         w.document.close();
     };
 
@@ -1328,37 +1317,24 @@ async function envoyerPhotoAnimal(onglet, prenom, nom, nomAnimal, dateStr) {
                 resolve(false);
                 return;
             }
-            fetch(window.APPS_SCRIPT_URL || APPS_SCRIPT_URL, {
-                method: 'POST',
-                // text/plain exprès (voir sendToGoogle juste au-dessus) : évite
-                // la pré-vérification CORS que l'Apps Script ne gère pas.
-                // Contrairement à avant (mode:'no-cors'), on lit maintenant la
-                // réponse pour savoir si l'envoi a vraiment réussi côté Drive.
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({
-                    action:      'photo',
-                    onglet:      onglet,
-                    filename:    filename,
-                    imageBase64: base64,
-                    mimeType:    'image/jpeg',
-                    prenom:      (prenom   || ''       ).trim(),
-                    nom:         (nom      || 'Inconnu').trim(),
-                    animal:      (nomAnimal || 'Animal').trim(),
-                    dateDossier: date
-                })
-            }).then(async function(resp) {
-                var result = {};
-                try { result = await resp.json(); } catch (e) { /* réponse non-JSON */ }
-                if (!resp.ok || result.status !== 'ok') {
-                    console.error('[Photo] Échec de l\'envoi vers Drive :', result.message || ('HTTP ' + resp.status));
-                    resolve(false);
-                } else {
+            (async function () {
+                try {
+                    await stockageDeposerSoumission({
+                        onglet:      onglet,
+                        prenom:      (prenom   || ''       ).trim(),
+                        nom:         (nom      || 'Inconnu').trim(),
+                        animal:      (nomAnimal || 'Animal').trim(),
+                        dateDossier: date,
+                        nomFichier:  filename + '.jpg',
+                        donnees:     stockageBase64VersBlob(base64, 'image/jpeg'),
+                        mimeType:    'image/jpeg'
+                    });
                     resolve(true);
+                } catch (e) {
+                    console.error('[Photo] Échec du dépôt :', e.message || e);
+                    resolve(false);
                 }
-            }).catch(function(e) {
-                console.error('[Photo] Erreur réseau lors de l\'envoi :', e);
-                resolve(false);
-            });
+            })();
         });
     });
 }

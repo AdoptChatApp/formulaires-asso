@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo.png">
+<title>Archives — {{asso.nom}}</title>
+<link rel="stylesheet" href="formulaires-commun.css">
+<style>
+  :root{ --cream:#faf7f2; --warm:#f0e8d8; --brown:#3d2b1f; --orange:#c96b2a; --grey:#8a7968; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:Arial,sans-serif;font-size:16px;line-height:normal;background:var(--cream);color:var(--brown);}
+  #entete .header-adoption-right{display:none;}
+  header{background:#fff;border-bottom:3px solid var(--orange);padding:18px 24px;display:flex;align-items:center;gap:14px;}
+  header h1{font-size:16px;margin:0;}
+  header p{font-size:11px;color:var(--grey);margin:2px 0 0;}
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px 60px;}
+  .search-box{position:relative;margin-bottom:20px;}
+  .search-box input{width:100%;box-sizing:border-box;padding:12px 14px;font-size:14px;border:1px solid var(--warm);border-radius:10px;background:#fff;}
+  #liste-resultats{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-height:320px;overflow-y:auto;z-index:1000;display:none;}
+  #liste-resultats .ligne{padding:9px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f0f0;}
+  #liste-resultats .ligne:hover{background:#f5f5f5;}
+  #liste-resultats .ligne small{display:block;color:var(--grey);font-size:11.5px;margin-top:2px;}
+  .card{background:#fff;border:1px solid var(--warm);border-radius:12px;padding:16px 18px;margin-bottom:14px;}
+  .card h2{font-size:13px;margin:0 0 10px;color:var(--orange);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:12.5px;}
+  .grid2 .lbl{color:var(--grey);}
+  .full{grid-column:1/-1;}
+  .empty{color:var(--grey);font-size:12px;font-style:italic;}
+  .resume{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;}
+  th{text-align:left;font-size:10px;color:var(--grey);text-transform:uppercase;padding:4px 6px;border-bottom:1px solid var(--warm);}
+  td{padding:5px 6px;border-bottom:1px solid #f2ece1;vertical-align:top;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;background:var(--warm);font-size:10px;}
+  .lien-pdf{color:var(--orange);text-decoration:none;font-size:11px;white-space:nowrap;}
+  .lien-pdf:hover{text-decoration:underline;}
+  .rien{color:var(--grey);font-size:11.5px;font-style:italic;margin-top:4px;}
+  .table-scroll{overflow-x:auto;}
+  @media (max-width:600px){ .grid2{grid-template-columns:1fr;} }
+  #login-err{color:#c00000;font-size:12px;margin-bottom:10px;min-height:16px;}
+</style>
+<script src="association-config.js"></script>
+<script src="branding.js"></script>
+<script src="garde-offre.js"></script>
+</head>
+<body>
+
+<div id="login-screen" style="position:fixed;inset:0;background:var(--cream);z-index:99999;display:flex;align-items:center;justify-content:center;">
+  <div style="max-width:340px;width:90%;background:#fff;border:1px solid var(--warm);border-radius:10px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+    <h1 style="font-size:16px;margin:0 0 4px;">{{asso.nom}}</h1>
+    <p style="font-size:12px;color:var(--grey);margin-bottom:16px;">Connexion requise.</p>
+    <input type="email" id="login-email" placeholder="Email" style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+    <input type="password" id="login-password" placeholder="Mot de passe" style="width:100%;box-sizing:border-box;margin-bottom:10px;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+    <div id="login-err"></div>
+    <button type="button" onclick="seConnecterSuivi()" style="width:100%;padding:9px;background:var(--orange);color:#fff;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:13px;">Se connecter</button>
+  </div>
+</div>
+
+<div style="max-width:900px;margin:0 auto;padding:0 16px;">
+  <div id="entete"></div>
+  <p style="font-size:11px;color:var(--grey);margin:-8px 0 12px;">Tous les documents enregistrés (PDF des formulaires, photos, factures, certificats). Téléchargement réservé aux personnes connectées.</p>
+</div>
+<div class="wrap">
+  <div class="search-box" style="display:flex;gap:8px;flex-wrap:wrap;">
+    <input type="text" id="filtre-texte" placeholder="Rechercher : nom, animal, date (2026-05)…" autocomplete="off" style="flex:1;min-width:200px;">
+    <select id="filtre-type" style="padding:10px;border:1px solid var(--warm);border-radius:10px;background:#fff;font-size:14px;"><option value="">Tous les types</option></select>
+  </div>
+  <div class="card">
+    <div id="compteur" class="empty" style="margin-bottom:6px;">Chargement…</div>
+    <div class="table-scroll"><table>
+      <thead><tr><th>Date</th><th>Type</th><th>Dossier</th><th>Fichier</th><th>Taille</th><th></th></tr></thead>
+      <tbody id="lignes"></tbody>
+    </table></div>
+    <div style="text-align:center;margin-top:10px;"><button type="button" id="btn-plus" style="display:none;padding:8px 16px;border:1px solid var(--orange);background:#fff;color:var(--orange);border-radius:8px;cursor:pointer;">Afficher plus</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
+<script src="supabase-config.js"></script>
+<script src="stockage-fichiers.js"></script>
+<script src="formulaires-commun.js"></script>
+<script>
+const supabaseClient = creerClientSupabase();
+initSessionSuivi();
+
+document.addEventListener('DOMContentLoaded', function() {
+  creerEntete({ dateId: 'dateRef', titre: 'Archives' });
+});
+
+function escH(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,"&#39;").replace(/"/g,'&quot;'); }
+function fmtTaille(o) { if (!o) return '—'; return o > 1048576 ? (o/1048576).toFixed(1).replace('.',',') + ' Mo' : Math.max(1, Math.round(o/1024)) + ' Ko'; }
+function fmtDate(d) { const x = new Date(d); return isNaN(x) ? '—' : x.toLocaleDateString('fr-FR') + ' ' + x.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}); }
+
+let TOUS = [], FILTRES = [], AFFICHES = 0;
+const PAGE = 100;
+
+function decrire(d) {
+  const p = d.chemin.split('/');
+  return { chemin: d.chemin, cree: d.cree_le, taille: d.taille,
+           type: p[0] || '', dossier: (p.length > 3 ? p.slice(1, -2).join(' / ') : (p[1] || '')).replace(/_/g, ' '),
+           fichier: p[p.length - 1] || '' };
+}
+
+async function charger() {
+  const { data, error } = await supabaseClient.rpc('lister_documents');
+  if (error) {
+    document.getElementById('compteur').textContent = 'Impossible de lister les documents : ' + error.message +
+      ' (SQL 074 exécuté ? compte autorisé ?)';
+    return;
+  }
+  TOUS = (data || []).map(decrire);
+  const types = [...new Set(TOUS.map(d => d.type))].sort();
+  document.getElementById('filtre-type').innerHTML = '<option value="">Tous les types</option>' +
+    types.map(t => `<option value="${escH(t)}">${escH(t)}</option>`).join('');
+  filtrer();
+}
+
+function filtrer() {
+  const q = document.getElementById('filtre-texte').value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const t = document.getElementById('filtre-type').value;
+  FILTRES = TOUS.filter(d => (!t || d.type === t) &&
+    (!q || (d.dossier + ' ' + d.fichier + ' ' + d.type + ' ' + String(d.cree).slice(0, 10)).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(q)));
+  AFFICHES = 0;
+  document.getElementById('lignes').innerHTML = '';
+  plus();
+}
+
+function plus() {
+  const lot = FILTRES.slice(AFFICHES, AFFICHES + PAGE);
+  document.getElementById('lignes').insertAdjacentHTML('beforeend', lot.map(d =>
+    `<tr><td>${escH(fmtDate(d.cree))}</td><td><span class="badge">${escH(d.type)}</span></td><td>${escH(d.dossier)}</td>` +
+    `<td>${escH(d.fichier)}</td><td>${fmtTaille(d.taille)}</td>` +
+    `<td><button type="button" class="lien-pdf" data-chemin="${escH(d.chemin)}" style="background:none;border:1px solid var(--orange);border-radius:6px;padding:3px 8px;cursor:pointer;">⬇ Télécharger</button></td></tr>`).join(''));
+  AFFICHES += lot.length;
+  document.getElementById('compteur').textContent = FILTRES.length + ' document(s)' + (FILTRES.length !== TOUS.length ? ' sur ' + TOUS.length : '');
+  document.getElementById('btn-plus').style.display = AFFICHES < FILTRES.length ? 'inline-block' : 'none';
+}
+
+document.getElementById('filtre-texte').addEventListener('input', filtrer);
+document.getElementById('filtre-type').addEventListener('change', filtrer);
+document.getElementById('btn-plus').addEventListener('click', plus);
+document.getElementById('lignes').addEventListener('click', async function (e) {
+  const b = e.target.closest('button[data-chemin]');
+  if (!b) return;
+  const txt = b.textContent; b.disabled = true; b.textContent = '…';
+  try { await stockageTelecharger(b.dataset.chemin); }
+  catch (err) { alert('Téléchargement impossible : ' + (err.message || err)); }
+  b.disabled = false; b.textContent = txt;
+});
+
+// Charge la liste dès que la session est ouverte (voir initSessionSuivi).
+let _charge = false;
+function tenter() { if (_charge) return; _charge = true; charger(); }
+supabaseClient.auth.getSession().then(r => { if (r.data && r.data.session) tenter(); });
+supabaseClient.auth.onAuthStateChange((ev, session) => { if (session) { _charge = false; tenter(); } });
+</script>
+</body>
+</html>
