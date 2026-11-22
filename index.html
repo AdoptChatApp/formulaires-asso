@@ -688,11 +688,14 @@ function activerOnglet(slug) {
     const url = new URL(window.location);
     url.searchParams.set('onglet', slug);
     window.history.replaceState({}, '', url);
+    // Mémorise l'onglet pour y revenir via le lien « Accueil de l'association » des autres pages.
+    try { sessionStorage.setItem('onglet_accueil', slug); } catch (e) {}
 }
 
 (function initOnglet() {
     const params = new URLSearchParams(window.location.search);
     let slug = params.get('onglet') || (window.location.hash ? window.location.hash.slice(1) : '');
+    if (!slug) { try { slug = sessionStorage.getItem('onglet_accueil') || ''; } catch (e) {} }
     if (slug && document.getElementById('tab-' + slug)) {
         activerOnglet(slug);
     }
