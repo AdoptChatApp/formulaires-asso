@@ -185,6 +185,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
 <script src="supabase-config.js"></script>
+<script src="stockage-fichiers.js"></script>
 <script src="config.js"></script>
 <script src="compta-commun.js"></script>
 <script>
@@ -407,10 +408,6 @@ function blobEnBase64(blob) {
 }
 
 async function deposerFactureDrive(fichier, { fournisseur, numero, montant, date, periode }) {
-  const { data: cfg, error: errCfg } = await supabaseClient.from('config_compta').select('valeur').eq('cle', 'factures_drive_dossier_id').maybeSingle();
-  const dossierId = (cfg && typeof cfg.valeur === 'string') ? cfg.valeur.trim() : '';
-  if (errCfg || !dossierId) throw new Error("Dossier Drive des factures non configuré : renseignez-le dans Configuration.");
-
   let blob = fichier, ext, mime;
   if (fichier.type === 'application/pdf' || /\.pdf$/i.test(fichier.name)) {
     ext = 'pdf'; mime = 'application/pdf';
@@ -421,25 +418,13 @@ async function deposerFactureDrive(fichier, { fournisseur, numero, montant, date
   }
   if (blob.size > 20 * 1024 * 1024) throw new Error('Fichier trop volumineux (20 Mo maximum).');
 
-  const resp = await fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    // text/plain exprès : évite la pré-vérification CORS (OPTIONS) que l'Apps Script ne gère pas.
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({
-      action: 'facture_fichier',
-      dossierId,
-      periode: periode || '',
-      filename: nomFichierFacture(fournisseur, numero, montant, date, ext),
-      mimeType: mime,
-      fichierBase64: await blobEnBase64(blob)
-    })
+  // Dépôt dans le stockage Supabase (dossier privé « documents », visible dans Archives).
+  return await stockageDeposerFacture({
+    periode: periode || '',
+    nomFichier: nomFichierFacture(fournisseur, numero, montant, date, ext),
+    donnees: blob,
+    mimeType: mime
   });
-  let result = {};
-  try { result = await resp.json(); } catch (e) { /* réponse non-JSON */ }
-  if (!resp.ok || result.status !== 'ok' || !result.url) {
-    throw new Error('Dépôt sur Drive échoué : ' + (result.message || ('HTTP ' + resp.status)));
-  }
-  return result.url;
 }
 
 function openEdit(id) {

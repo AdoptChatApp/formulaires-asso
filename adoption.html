@@ -665,6 +665,7 @@ celui de sa famille ou la renonciation de celui-ci.</p>
 	
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
 <script src="supabase-config.js"></script>
+<script src="stockage-fichiers.js"></script>
 <script src="selecteur-animal.js"></script>
 <script src="selecteur-personne.js"></script>
 <script src="config.js"></script>
@@ -763,34 +764,25 @@ function aperçuPhoto(input, previewId) {
             await new Promise(function(resolve) {
                 var f = file, fn = filename;
                 redimensionnerImage(f, function(base64) {
-                    fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify({
-                            action:      'photo',
-                            onglet:      'Adoption',
-                            filename:    fn,
-                            imageBase64: base64,
-                            mimeType:    'image/jpeg',
-                            personne:    nom,
-                            prenom:      prenomRaw,
-                            nom:         nomRaw,
-                            animal:      animalRaw,
-                            dateDossier: dateISODossier
-                        })
-                    }).then(async function(resp) {
-                        var result = {};
-                        try { result = await resp.json(); } catch (e) { /* réponse non-JSON */ }
-                        if (!resp.ok || result.status !== 'ok') {
-                            console.error('[Photo] Échec de l\'envoi vers Drive :', result.message || ('HTTP ' + resp.status));
+                    (async function () {
+                        try {
+                            if (!base64) throw new Error('image illisible');
+                            await stockageDeposerSoumission({
+                                onglet:      'Adoption',
+                                prenom:      prenomRaw,
+                                nom:         nomRaw,
+                                animal:      animalRaw,
+                                dateDossier: dateISODossier,
+                                nomFichier:  fn + '.jpg',
+                                donnees:     stockageBase64VersBlob(base64, 'image/jpeg'),
+                                mimeType:    'image/jpeg'
+                            });
+                        } catch (e) {
+                            console.error('[Photo] Échec du dépôt :', e.message || e);
                             echecs.push(photos[i].type);
                         }
                         resolve();
-                    }).catch(function(e) {
-                        console.error('[Photo] Erreur réseau lors de l\'envoi :', e);
-                        echecs.push(photos[i].type);
-                        resolve();
-                    });
+                    })();
                 });
             });
         }

@@ -293,6 +293,7 @@ tr.done-row td { opacity:.75; }
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4"></script>
 <script src="supabase-config.js"></script>
+<script src="stockage-fichiers.js"></script>
 <script src="config.js"></script>
 <script src="formulaires-commun.js"></script>
 <script>
@@ -658,7 +659,6 @@ async function onIcadFileChosen(e) {
 
     afficherPopupChargement();
     try {
-        const base64 = await fichierEnBase64(file);
         const ext = (file.name.split('.').pop() || 'pdf').toLowerCase();
 
         const prefixe   = typeDoc === 'sterilisation' ? 'sterilisation' : 'Icad';
@@ -666,21 +666,12 @@ async function onIcadFileChosen(e) {
         const numPropre = (numeroIcad || 'sans-numero').replace(/[\\/:*?"<>|]+/g, '').trim() || 'sans-numero';
         const filename  = `${prefixe}_${nomPropre}_${numPropre}.${ext}`;
 
-        const resp = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' }, // évite le préflight CORS, voir stocker-pdf-drive.js
-            body: JSON.stringify({
-                action: 'icad_fichier', typeDoc, filename,
-                animal: nomPropre, puce: numPropre, // sert à ranger le fichier dans le dossier du chat
-                mimeType: file.type || 'application/octet-stream',
-                fichierBase64: base64
-            })
-        });
-        const json = await resp.json();
-        // L'Apps Script répond {status:'ok', url} (ou {status:'error', message}),
-        // comme pour les actions 'photo' et 'pdf' — pas {ok:true}.
-        const reussi = (json.ok === true || json.status === 'ok') && json.url;
-        if (!reussi) throw new Error(json.error || json.message || 'échec côté Drive (aucun lien renvoyé)');
+        // Dépôt dans le stockage Supabase (dossier privé « documents », visible dans Archives).
+        const json = { url: await stockageDeposerIcad({
+            animal: nomPropre, puce: numPropre,
+            nomFichier: filename, donnees: file,
+            mimeType: stockageMimeDe(filename, file.type)
+        }) };
 
         const colonne = typeDoc === 'sterilisation' ? 'fichier_sterilisation_url' : 'fichier_icad_url';
         const { error } = await supabaseClient.from('animaux_sterilisation_icad')
