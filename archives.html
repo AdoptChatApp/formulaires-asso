@@ -17,7 +17,14 @@
   .wrap{max-width:900px;margin:0 auto;padding:20px 16px 60px;}
   .search-box{position:relative;margin-bottom:20px;}
   .search-box input[type=search]{flex:1;min-width:0;padding:12px 14px;font-size:14px;border:1px solid var(--warm);border-radius:10px;background:#fff;}
-  .ligne-recherche{display:flex;gap:8px;}
+  .ligne-recherche{display:flex;gap:8px;position:relative;}
+  #suggestions{position:absolute;left:0;right:110px;top:100%;margin-top:4px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);max-height:320px;overflow-y:auto;z-index:1000;display:none;}
+  #suggestions .sugg{padding:9px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
+  #suggestions .sugg:last-child{border-bottom:none;}
+  #suggestions .sugg.actif,#suggestions .sugg:hover{background:#f5f5f5;}
+  #suggestions .sugg small{color:var(--grey);font-size:11.5px;white-space:nowrap;}
+  #suggestions .sugg.vide{color:var(--grey);}
+  #suggestions .aucun{padding:9px 14px;color:var(--grey);font-size:13px;}
   .btn-chercher{padding:0 18px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-weight:bold;font-size:14px;cursor:pointer;white-space:nowrap;}
   .btn-chercher:hover{opacity:.9;}
   .ligne-filtres{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;font-size:11px;color:var(--grey);}
@@ -72,7 +79,8 @@
 <div class="wrap">
   <form id="form-recherche" class="search-box" autocomplete="off" role="search">
     <div class="ligne-recherche">
-      <input type="search" id="filtre-texte" placeholder="Rechercher : nom d'une personne, d'un chat, fichier…" aria-label="Rechercher">
+      <input type="search" id="filtre-texte" placeholder="Rechercher : nom d'un chat, d'une personne, fichier…" aria-label="Rechercher" autocomplete="off">
+      <div id="suggestions" role="listbox"></div>
       <button type="submit" class="btn-chercher">🔍 Rechercher</button>
     </div>
     <div class="ligne-filtres">
@@ -115,7 +123,7 @@ function escH(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</
 function fmtTaille(o) { if (!o) return '—'; return o > 1048576 ? (o/1048576).toFixed(1).replace('.',',') + ' Mo' : Math.max(1, Math.round(o/1024)) + ' Ko'; }
 function fmtDate(d) { const x = new Date(d); return isNaN(x) ? '—' : x.toLocaleDateString('fr-FR') + ' ' + x.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}); }
 
-let TOUS = [], FILTRES = [], AFFICHES = 0;
+let TOUS = [], FILTRES = [], AFFICHES = 0, ANIMAUX = [], MOTS = [];
 const PAGE = 100;
 
 function jourLocal(d) {
@@ -143,6 +151,66 @@ async function charger() {
   const types = [...new Set(TOUS.map(d => d.type))].sort();
   document.getElementById('filtre-type').innerHTML = '<option value="">Tous les types</option>' +
     types.map(t => `<option value="${escH(t)}">${escH(t)}</option>`).join('');
+  preparerSuggestions();
+  filtrer();
+  chargerAnimaux();
+}
+
+// Noms des chats (table animaux) : sert uniquement aux suggestions. Si le compte n'a pas
+// le droit de lire la liste des animaux, on se contente des noms présents dans les dossiers.
+async function chargerAnimaux() {
+  try {
+    const { data, error } = await supabaseClient.rpc('rechercher_animaux_fiche', { p_recherche: null, p_annee: null });
+    if (error) throw error;
+    const vus = new Set();
+    ANIMAUX = [];
+    (data || []).forEach(a => [a.nom_usuel, a.nom_adoption].forEach(n => {
+      const c = sansAccent(n).trim();
+      if (c && !vus.has(c)) { vus.add(c); ANIMAUX.push({ nom: String(n).trim(), cle: c }); }
+    }));
+    ANIMAUX.sort((a, b) => a.cle.localeCompare(b.cle));
+    afficherSuggestions();
+  } catch (e) { console.warn('[Archives] Liste des animaux indisponible :', e.message || e); }
+}
+
+// Mots présents dans les noms de dossiers (personnes, animaux) — hors dates et chiffres.
+function preparerSuggestions() {
+  const m = new Map();
+  TOUS.forEach(d => d.dossier.split(/\s+/).forEach(w => {
+    const c = sansAccent(w);
+    if (c.length > 1 && !/\d/.test(c) && !m.has(c)) m.set(c, w);
+  }));
+  MOTS = [...m].map(([cle, nom]) => ({ nom, cle })).sort((a, b) => a.cle.localeCompare(b.cle));
+}
+
+function compterDocs(cle) {
+  return TOUS.reduce((n, d) => n + (sansAccent(d.dossier + ' ' + d.fichier).includes(cle) ? 1 : 0), 0);
+}
+
+let SUGG_ACTIF = -1;
+function afficherSuggestions() {
+  const box = document.getElementById('suggestions');
+  const q = sansAccent(document.getElementById('filtre-texte').value).trim();
+  SUGG_ACTIF = -1;
+  if (!q || document.activeElement !== document.getElementById('filtre-texte')) { box.style.display = 'none'; return; }
+  const debute = n => n.cle.split(/[\s\-']+/).some(w => w.startsWith(q));
+  const vus = new Set();
+  const liste = [];
+  ANIMAUX.filter(debute).forEach(a => { vus.add(a.cle); liste.push({ nom: a.nom, cle: a.cle, icone: '🐱' }); });
+  MOTS.filter(debute).forEach(w => { if (!vus.has(w.cle)) { vus.add(w.cle); liste.push({ nom: w.nom, cle: w.cle, icone: '👤' }); } });
+  liste.sort((a, b) => (b.cle.startsWith(q) - a.cle.startsWith(q)) || a.cle.localeCompare(b.cle));
+  if (!liste.length) { box.innerHTML = '<div class="aucun">Aucun nom ne commence par « ' + escH(q) + ' »</div>'; box.style.display = 'block'; return; }
+  box.innerHTML = liste.slice(0, 40).map(x => {
+    const n = compterDocs(x.cle);
+    return '<div class="sugg' + (n ? '' : ' vide') + '" role="option" data-nom="' + escH(x.nom) + '"><span>' + x.icone + ' ' + escH(x.nom) + '</span><small>' +
+      (n ? n + ' document' + (n > 1 ? 's' : '') : 'aucun document') + '</small></div>';
+  }).join('');
+  box.style.display = 'block';
+}
+function fermerSuggestions() { document.getElementById('suggestions').style.display = 'none'; SUGG_ACTIF = -1; }
+function choisirSuggestion(nom) {
+  document.getElementById('filtre-texte').value = nom;
+  fermerSuggestions();
   filtrer();
 }
 
@@ -179,8 +247,28 @@ function plus() {
   document.getElementById('btn-plus').style.display = AFFICHES < FILTRES.length ? 'inline-block' : 'none';
 }
 
-document.getElementById('form-recherche').addEventListener('submit', function (e) { e.preventDefault(); filtrer(); });
-document.getElementById('filtre-texte').addEventListener('input', filtrer);
+document.getElementById('form-recherche').addEventListener('submit', function (e) { e.preventDefault(); fermerSuggestions(); filtrer(); });
+const champTexte = document.getElementById('filtre-texte');
+champTexte.addEventListener('input', function () { filtrer(); afficherSuggestions(); });
+champTexte.addEventListener('focus', afficherSuggestions);
+champTexte.addEventListener('keydown', function (e) {
+  const items = [...document.querySelectorAll('#suggestions .sugg')];
+  if (!items.length || document.getElementById('suggestions').style.display === 'none') return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    SUGG_ACTIF = (SUGG_ACTIF + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+    items.forEach((it, i) => it.classList.toggle('actif', i === SUGG_ACTIF));
+    items[SUGG_ACTIF].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter' && SUGG_ACTIF >= 0) {
+    e.preventDefault();
+    choisirSuggestion(items[SUGG_ACTIF].dataset.nom);
+  } else if (e.key === 'Escape') fermerSuggestions();
+});
+document.getElementById('suggestions').addEventListener('mousedown', function (e) {
+  const it = e.target.closest('.sugg');
+  if (it) { e.preventDefault(); choisirSuggestion(it.dataset.nom); }
+});
+document.addEventListener('click', function (e) { if (!e.target.closest('.ligne-recherche')) fermerSuggestions(); });
 ['filtre-type', 'filtre-du', 'filtre-au'].forEach(id => document.getElementById(id).addEventListener('change', function () {
   document.querySelectorAll('[data-periode]').forEach(b => b.classList.remove('actif'));
   filtrer();
@@ -200,6 +288,7 @@ document.querySelector('.raccourcis').addEventListener('click', function (e) {
 });
 document.getElementById('btn-reinit').addEventListener('click', function () {
   document.getElementById('form-recherche').reset();
+  fermerSuggestions();
   document.querySelectorAll('[data-periode]').forEach(b => b.classList.remove('actif'));
   filtrer();
 });
