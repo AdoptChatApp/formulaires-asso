@@ -140,19 +140,46 @@ function decrire(d) {
            fichier: p[p.length - 1] || '' };
 }
 
+// Supabase ne renvoie que 1000 lignes par requête : on lit la liste par tranches.
+async function lireTousLesDocuments() {
+  const TRANCHE = 1000;
+  let tout = [];
+  for (let debut = 0; debut < 20000; debut += TRANCHE) {
+    const { data, error } = await supabaseClient.rpc('lister_documents').range(debut, debut + TRANCHE - 1);
+    if (error) throw error;
+    tout = tout.concat(data || []);
+    if (!data || data.length < TRANCHE) break;
+  }
+  return tout;
+}
+
+function messageListe(html) { document.getElementById('compteur').innerHTML = html; }
+
 async function charger() {
-  const { data, error } = await supabaseClient.rpc('lister_documents');
-  if (error) {
-    document.getElementById('compteur').textContent = 'Impossible de lister les documents : ' + error.message +
-      ' (SQL 074 exécuté ? compte autorisé ?)';
+  messageListe('Chargement des documents…');
+  let data;
+  try {
+    data = await lireTousLesDocuments();
+  } catch (error) {
+    console.error('[Archives] lister_documents :', error);
+    const m = String((error && (error.message || error.details)) || error);
+    let aide = '';
+    if (/Accès refusé/i.test(m)) aide = ' Ce compte n\'est ni un compte Suivi ni un compte Compta.';
+    else if (/could not find|does not exist|schema cache|404/i.test(m)) aide = ' La fonction lister_documents n\'existe pas : exécutez le fichier SQL 074_stockage_fichiers.sql dans Supabase.';
+    messageListe('<span style="color:#c00000;">Impossible de lister les documents : ' + escH(m) + '.' + aide + '</span> ' +
+      '<button type="button" class="btn-mini" onclick="charger()">Réessayer</button>');
     return;
   }
-  TOUS = (data || []).map(decrire);
+  TOUS = (data || []).filter(d => d && d.chemin).map(decrire);
   const types = [...new Set(TOUS.map(d => d.type))].sort();
   document.getElementById('filtre-type').innerHTML = '<option value="">Tous les types</option>' +
     types.map(t => `<option value="${escH(t)}">${escH(t)}</option>`).join('');
   preparerSuggestions();
   filtrer();
+  if (!TOUS.length) {
+    messageListe('Aucun document enregistré pour le moment. Les fichiers apparaissent ici une fois déposés par un formulaire ' +
+      '(les anciens fichiers de Google Drive ne sont pas repris automatiquement).');
+  }
   chargerAnimaux();
 }
 
@@ -241,6 +268,7 @@ function plus() {
     `<td>${escH(d.fichier)}</td><td>${fmtTaille(d.taille)}</td>` +
     `<td><button type="button" class="lien-pdf" data-chemin="${escH(d.chemin)}" style="background:none;border:1px solid var(--orange);border-radius:6px;padding:3px 8px;cursor:pointer;">⬇ Télécharger</button></td></tr>`).join(''));
   AFFICHES += lot.length;
+  if (!TOUS.length) { document.getElementById('btn-plus').style.display = 'none'; return; }
   document.getElementById('compteur').textContent = FILTRES.length
     ? FILTRES.length + ' document(s)' + (FILTRES.length !== TOUS.length ? ' sur ' + TOUS.length : '')
     : 'Aucun document ne correspond à la recherche.';
@@ -305,7 +333,10 @@ document.getElementById('lignes').addEventListener('click', async function (e) {
 // Charge la liste dès que la session est ouverte (voir initSessionSuivi).
 let _charge = false;
 function tenter() { if (_charge) return; _charge = true; charger(); }
-supabaseClient.auth.getSession().then(r => { if (r.data && r.data.session) tenter(); });
+supabaseClient.auth.getSession().then(r => {
+  if (r.data && r.data.session) tenter();
+  else messageListe('Connectez-vous pour afficher les documents.');
+}).catch(e => messageListe('<span style="color:#c00000;">Connexion impossible : ' + escH(e.message || e) + '</span>'));
 supabaseClient.auth.onAuthStateChange((ev, session) => { if (session) { _charge = false; tenter(); } });
 </script>
 </body>
