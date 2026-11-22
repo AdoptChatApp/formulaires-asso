@@ -16,7 +16,16 @@
   header p{font-size:11px;color:var(--grey);margin:2px 0 0;}
   .wrap{max-width:900px;margin:0 auto;padding:20px 16px 60px;}
   .search-box{position:relative;margin-bottom:20px;}
-  .search-box input{width:100%;box-sizing:border-box;padding:12px 14px;font-size:14px;border:1px solid var(--warm);border-radius:10px;background:#fff;}
+  .search-box input[type=search]{flex:1;min-width:0;padding:12px 14px;font-size:14px;border:1px solid var(--warm);border-radius:10px;background:#fff;}
+  .ligne-recherche{display:flex;gap:8px;}
+  .btn-chercher{padding:0 18px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-weight:bold;font-size:14px;cursor:pointer;white-space:nowrap;}
+  .btn-chercher:hover{opacity:.9;}
+  .ligne-filtres{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;font-size:11px;color:var(--grey);}
+  .ligne-filtres label{display:flex;flex-direction:column;gap:3px;}
+  .ligne-filtres select,.ligne-filtres input[type=date]{padding:8px 10px;border:1px solid var(--warm);border-radius:8px;background:#fff;font-size:13px;color:var(--brown);}
+  .raccourcis{display:flex;gap:6px;flex-wrap:wrap;}
+  .btn-mini{padding:7px 10px;border:1px solid var(--warm);background:#fff;color:var(--brown);border-radius:8px;font-size:12px;cursor:pointer;}
+  .btn-mini:hover,.btn-mini.actif{border-color:var(--orange);color:var(--orange);}
   #liste-resultats{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-height:320px;overflow-y:auto;z-index:1000;display:none;}
   #liste-resultats .ligne{padding:9px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f0f0;}
   #liste-resultats .ligne:hover{background:#f5f5f5;}
@@ -61,10 +70,25 @@
   <p style="font-size:11px;color:var(--grey);margin:-8px 0 12px;">Tous les documents enregistrés (PDF des formulaires, photos, factures, certificats). Téléchargement réservé aux personnes connectées.</p>
 </div>
 <div class="wrap">
-  <div class="search-box" style="display:flex;gap:8px;flex-wrap:wrap;">
-    <input type="text" id="filtre-texte" placeholder="Rechercher : nom, animal, date (2026-05)…" autocomplete="off" style="flex:1;min-width:200px;">
-    <select id="filtre-type" style="padding:10px;border:1px solid var(--warm);border-radius:10px;background:#fff;font-size:14px;"><option value="">Tous les types</option></select>
-  </div>
+  <form id="form-recherche" class="search-box" autocomplete="off" role="search">
+    <div class="ligne-recherche">
+      <input type="search" id="filtre-texte" placeholder="Rechercher : nom d'une personne, d'un chat, fichier…" aria-label="Rechercher">
+      <button type="submit" class="btn-chercher">🔍 Rechercher</button>
+    </div>
+    <div class="ligne-filtres">
+      <label>Type
+        <select id="filtre-type"><option value="">Tous les types</option></select>
+      </label>
+      <label>Du <input type="date" id="filtre-du"></label>
+      <label>Au <input type="date" id="filtre-au"></label>
+      <span class="raccourcis">
+        <button type="button" class="btn-mini" data-periode="30j">30 derniers jours</button>
+        <button type="button" class="btn-mini" data-periode="mois">Ce mois</button>
+        <button type="button" class="btn-mini" data-periode="annee">Cette année</button>
+      </span>
+      <button type="button" id="btn-reinit" class="btn-mini" style="display:none;">✕ Réinitialiser</button>
+    </div>
+  </form>
   <div class="card">
     <div id="compteur" class="empty" style="margin-bottom:6px;">Chargement…</div>
     <div class="table-scroll"><table>
@@ -94,9 +118,16 @@ function fmtDate(d) { const x = new Date(d); return isNaN(x) ? '—' : x.toLocal
 let TOUS = [], FILTRES = [], AFFICHES = 0;
 const PAGE = 100;
 
+function jourLocal(d) {
+  const x = new Date(d);
+  if (isNaN(x)) return '';
+  return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+}
+function sansAccent(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+
 function decrire(d) {
   const p = d.chemin.split('/');
-  return { chemin: d.chemin, cree: d.cree_le, taille: d.taille,
+  return { chemin: d.chemin, cree: d.cree_le, jour: jourLocal(d.cree_le), taille: d.taille,
            type: p[0] || '', dossier: (p.length > 3 ? p.slice(1, -2).join(' / ') : (p[1] || '')).replace(/_/g, ' '),
            fichier: p[p.length - 1] || '' };
 }
@@ -116,12 +147,22 @@ async function charger() {
 }
 
 function filtrer() {
-  const q = document.getElementById('filtre-texte').value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // Tous les mots saisis doivent être présents (ordre libre) : « marie dupont » ou « dupont marie ».
+  const mots = sansAccent(document.getElementById('filtre-texte').value).split(/\s+/).filter(Boolean);
   const t = document.getElementById('filtre-type').value;
-  FILTRES = TOUS.filter(d => (!t || d.type === t) &&
-    (!q || (d.dossier + ' ' + d.fichier + ' ' + d.type + ' ' + String(d.cree).slice(0, 10)).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(q)));
+  const du = document.getElementById('filtre-du').value;
+  const au = document.getElementById('filtre-au').value;
+  FILTRES = TOUS.filter(d => {
+    if (t && d.type !== t) return false;
+    if (du && (!d.jour || d.jour < du)) return false;
+    if (au && (!d.jour || d.jour > au)) return false;
+    if (!mots.length) return true;
+    const foin = sansAccent(d.dossier + ' ' + d.fichier + ' ' + d.type + ' ' + d.jour + ' ' + fmtDate(d.cree).slice(0, 10));
+    return mots.every(m => foin.includes(m));
+  });
   AFFICHES = 0;
   document.getElementById('lignes').innerHTML = '';
+  document.getElementById('btn-reinit').style.display = (mots.length || t || du || au) ? '' : 'none';
   plus();
 }
 
@@ -132,12 +173,36 @@ function plus() {
     `<td>${escH(d.fichier)}</td><td>${fmtTaille(d.taille)}</td>` +
     `<td><button type="button" class="lien-pdf" data-chemin="${escH(d.chemin)}" style="background:none;border:1px solid var(--orange);border-radius:6px;padding:3px 8px;cursor:pointer;">⬇ Télécharger</button></td></tr>`).join(''));
   AFFICHES += lot.length;
-  document.getElementById('compteur').textContent = FILTRES.length + ' document(s)' + (FILTRES.length !== TOUS.length ? ' sur ' + TOUS.length : '');
+  document.getElementById('compteur').textContent = FILTRES.length
+    ? FILTRES.length + ' document(s)' + (FILTRES.length !== TOUS.length ? ' sur ' + TOUS.length : '')
+    : 'Aucun document ne correspond à la recherche.';
   document.getElementById('btn-plus').style.display = AFFICHES < FILTRES.length ? 'inline-block' : 'none';
 }
 
+document.getElementById('form-recherche').addEventListener('submit', function (e) { e.preventDefault(); filtrer(); });
 document.getElementById('filtre-texte').addEventListener('input', filtrer);
-document.getElementById('filtre-type').addEventListener('change', filtrer);
+['filtre-type', 'filtre-du', 'filtre-au'].forEach(id => document.getElementById(id).addEventListener('change', function () {
+  document.querySelectorAll('[data-periode]').forEach(b => b.classList.remove('actif'));
+  filtrer();
+}));
+document.querySelector('.raccourcis').addEventListener('click', function (e) {
+  const b = e.target.closest('[data-periode]');
+  if (!b) return;
+  const auj = new Date(), p = b.dataset.periode, f = x => jourLocal(x);
+  let debut = new Date(auj);
+  if (p === '30j') debut.setDate(debut.getDate() - 30);
+  else if (p === 'mois') debut = new Date(auj.getFullYear(), auj.getMonth(), 1);
+  else debut = new Date(auj.getFullYear(), 0, 1);
+  document.getElementById('filtre-du').value = f(debut);
+  document.getElementById('filtre-au').value = f(auj);
+  document.querySelectorAll('[data-periode]').forEach(x => x.classList.toggle('actif', x === b));
+  filtrer();
+});
+document.getElementById('btn-reinit').addEventListener('click', function () {
+  document.getElementById('form-recherche').reset();
+  document.querySelectorAll('[data-periode]').forEach(b => b.classList.remove('actif'));
+  filtrer();
+});
 document.getElementById('btn-plus').addEventListener('click', plus);
 document.getElementById('lignes').addEventListener('click', async function (e) {
   const b = e.target.closest('button[data-chemin]');
